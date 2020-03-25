@@ -13,9 +13,16 @@ use std::time::Duration;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(PartialEq, Copy, Clone)]
+enum StateInfo {
+    Init(&'static str),
+    Game(&'static str),
+}
+
+#[derive(PartialEq, Copy, Clone)]
 enum StateResult {
-    Push(&'static str),
-    Trans(&'static str),
+    Push(StateInfo),
+    Trans(StateInfo),
     Pop,
     Default,
 }
@@ -58,7 +65,7 @@ impl<'a> States for InitState<'a> {
             Event::KeyDown {
                 keycode: Some(Keycode::Q),
                 ..
-            } => StateResult::Push("game"),
+            } => StateResult::Push(StateInfo::Game("game")),
             _ => StateResult::Default,
         }
     }
@@ -164,7 +171,6 @@ fn main() -> Result<(), String> {
     let mut canvas = window.into_canvas().build().expect("ERROR on canvas");
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().expect("ERROR on event_pump");
-    let mut i = 0;
 
     let mut states: Vec<Box<dyn States>> = vec![];
     states.push(Box::new(InitState::new(&font_context, &texture_creator)));
@@ -177,7 +183,6 @@ fn main() -> Result<(), String> {
     );
     */
     'running: loop {
-        i = (i + 1) % 255;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
@@ -185,10 +190,8 @@ fn main() -> Result<(), String> {
                     // 가장 상단의 sates에 대한 처리
                     if let Some(state) = states.last_mut() {
                         match state.update(&event) {
-                            StateResult::Push(s) => {
-                                println!("push check");
-                                if s == "game" {
-                                    println!("game check");
+                            StateResult::Push(s) => match s {
+                                StateInfo::Game(_name) => {
                                     let mut game_state = GameState::new();
                                     game_state.add_sprite(
                                         &texture_creator,
@@ -197,7 +200,9 @@ fn main() -> Result<(), String> {
                                     );
                                     states.push(Box::new(game_state));
                                 }
-                            }
+                                _ => (),
+                            },
+
                             StateResult::Pop => {
                                 states.pop().unwrap();
                             }
@@ -207,6 +212,7 @@ fn main() -> Result<(), String> {
                 }
             }
         }
+
         // The rest of the game loop goes here...
 
         // state 생성도 여기에서 함
