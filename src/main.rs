@@ -13,6 +13,8 @@ use std::time::Duration;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+const DIRECTION: &str = "left";
+
 #[derive(PartialEq, Copy, Clone)]
 enum StateInfo {
     Init(&'static str),
@@ -25,6 +27,72 @@ enum StateResult {
     Trans(StateInfo),
     Pop,
     Default,
+}
+
+/// Animation 을 수행하는 내역
+/// 개별 캐릭터는 하나의 UnitCharacter 이다.
+#[derive(Clone, PartialEq)]
+pub struct UnitCharacter {
+    hitbox: Option<Rect>,
+    animation: Vec<Rect>,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    frame: u32,
+    max_frame: u32,
+}
+
+impl UnitCharacter {
+    /// 개별 캐릭터를 등록한다.
+    pub fn new(w: u32, h: u32, max_frame: u32) -> UnitCharacter {
+        UnitCharacter {
+            hitbox: None,
+            animation: vec![],
+            x: 0,
+            y: 0,
+            w: w,
+            h: h,
+            frame: 0,
+            max_frame: max_frame,
+        }
+    }
+
+    /// hitbox를 등록한다.
+    pub fn set_hitbox(&mut self, x: i32, y: i32, w: u32, h: u32) {
+        self.hitbox = Some(Rect::new(x, y, w, h));
+    }
+
+    /// animation을 등록한다.
+    pub fn set_animation(&mut self, frames: Vec<Rect>) {
+        self.animation = frames;
+    }
+
+    /// 해당 캐릭터를 움직이게한다.
+    pub fn update(&mut self) {
+        // 뭔가를 합니다.
+        self.frame = self.frame + 1;
+        if self.frame >= self.max_frame {
+            self.frame = 0;
+        }
+    }
+
+    /// 해당 캐릭터를 canvas에 노출합니다.
+    pub fn render(&self, canvas: &mut WindowCanvas, texture: &Texture) {
+        let src: Rect = self.animation[self.frame as usize];
+
+        canvas
+            .copy_ex(
+                texture,
+                Some(src),
+                Some(Rect::new(self.x, self.y, self.w, self.h)),
+                0.,
+                None,
+                false,
+                false,
+            )
+            .unwrap();
+    }
 }
 
 trait States {
@@ -91,13 +159,17 @@ impl<'a> States for InitState<'a> {
 
 struct GameState<'a> {
     sprites: HashMap<String, Rc<RefCell<Texture<'a>>>>,
+    unit_char: HashMap<String, Rc<RefCell<UnitCharacter>>>,
 }
 
 impl<'a> GameState<'a> {
     fn new() -> GameState<'a> {
         let sprites = HashMap::new();
 
-        GameState { sprites }
+        GameState {
+            sprites,
+            unit_char: HashMap::new(),
+        }
     }
 
     fn add_sprite(
@@ -109,10 +181,22 @@ impl<'a> GameState<'a> {
         let texture = creator.load_texture(Path::new(&path)).unwrap();
         self.sprites.insert(key, Rc::new(RefCell::new(texture)));
     }
+
+    fn add_unit_char(&mut self, name: &'static str, w: u32, h: u32, max_frame: u32) {
+        let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame);
+        uc.set_animation(vec![Rect::new(0, 0, w, h), Rect::new(w as i32, 0, w, h)]);
+        self.unit_char
+            .insert(name.to_string(), Rc::new(RefCell::new(uc)));
+    }
 }
 
 impl<'a> States for GameState<'a> {
     fn update(&mut self, event: &sdl2::event::Event) -> StateResult {
+        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
+        let mut unit_char = unit_char_refcell.borrow_mut();
+
+        unit_char.update();
+
         match event {
             Event::KeyDown {
                 keycode: Some(Keycode::Escape),
@@ -128,29 +212,10 @@ impl<'a> States for GameState<'a> {
         let texture_refcell = self.sprites.get(&"image".to_string()).unwrap();
         let texture = texture_refcell.borrow();
 
-        canvas
-            .copy_ex(
-                &*texture,
-                None,
-                Some(Rect::new(0, 0, 400, 300)),
-                0.,
-                Some(Point::new(0, 0)),
-                false,
-                false,
-            )
-            .unwrap();
+        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
+        let unit_char = unit_char_refcell.borrow();
 
-        canvas
-            .copy_ex(
-                &*texture,
-                None,
-                Some(Rect::new(401, 301, 400, 300)),
-                0.,
-                Some(Point::new(0, 0)),
-                false,
-                false,
-            )
-            .unwrap();
+        unit_char.render(canvas, &texture);
         StateResult::Default
     }
 }
@@ -196,8 +261,10 @@ fn main() -> Result<(), String> {
                                     game_state.add_sprite(
                                         &texture_creator,
                                         "image".to_string(),
-                                        "resources/image.png".to_string(),
+                                        "resources/GodotPlayer.png".to_string(),
                                     );
+
+                                    game_state.add_unit_char(DIRECTION, 16, 16, 2);
                                     states.push(Box::new(game_state));
                                 }
                                 _ => (),
