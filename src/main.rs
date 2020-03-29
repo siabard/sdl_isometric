@@ -96,7 +96,8 @@ impl UnitCharacter {
 }
 
 trait States {
-    fn update(&mut self, event: &sdl2::event::Event) -> StateResult;
+    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult;
+    fn update(&mut self) -> StateResult;
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
 }
 
@@ -128,7 +129,7 @@ impl<'a> InitState<'a> {
 }
 
 impl<'a> States for InitState<'a> {
-    fn update(&mut self, event: &sdl2::event::Event) -> StateResult {
+    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
         match event {
             Event::KeyDown {
                 keycode: Some(Keycode::Q),
@@ -136,6 +137,10 @@ impl<'a> States for InitState<'a> {
             } => StateResult::Push(StateInfo::Game("game")),
             _ => StateResult::Default,
         }
+    }
+
+    fn update(&mut self) -> StateResult {
+        StateResult::Default
     }
 
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
@@ -191,12 +196,7 @@ impl<'a> GameState<'a> {
 }
 
 impl<'a> States for GameState<'a> {
-    fn update(&mut self, event: &sdl2::event::Event) -> StateResult {
-        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
-        let mut unit_char = unit_char_refcell.borrow_mut();
-
-        unit_char.update();
-
+    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
         match event {
             Event::KeyDown {
                 keycode: Some(Keycode::Escape),
@@ -206,6 +206,14 @@ impl<'a> States for GameState<'a> {
         }
     }
 
+    fn update(&mut self) -> StateResult {
+        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
+        let mut unit_char = unit_char_refcell.borrow_mut();
+
+        unit_char.update();
+
+        StateResult::Default
+    }
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
@@ -261,7 +269,7 @@ fn main() -> Result<(), String> {
                     //
 
                     if let Some(state) = states.last_mut() {
-                        match state.update(&event) {
+                        match state.process_event(&event) {
                             StateResult::Push(s) => match s {
                                 StateInfo::Game(_name) => {
                                     let mut game_state = GameState::new();
@@ -296,6 +304,7 @@ fn main() -> Result<(), String> {
         //draw(&mut canvas, Color::RGB(i, 64, 255 - i), Some(&texture));
         canvas.clear();
         if let Some(state) = states.last_mut() {
+            state.update();
             state.render(&mut canvas);
         }
 
