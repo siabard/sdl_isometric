@@ -246,13 +246,20 @@ fn main() -> Result<(), String> {
         "image".to_string(),
         "resources/image.png".to_string(),
     );
-    */
+     */
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
                 _ => {
                     // 가장 상단의 sates에 대한 처리
+                    // 이 초기화 루틴을 어덯게 빼야하지??
+                    // ron 파일을 만들어서 읽어들일까?
+                    // 초기화를 하는 루틴이 필요하긴한데
+                    // 어떤 데이터를 초기화하는데 이용해야할까?
+                    //
+
                     if let Some(state) = states.last_mut() {
                         match state.update(&event) {
                             StateResult::Push(s) => match s {
