@@ -6,7 +6,7 @@ use sdl2::rect::{Point, Rect};
 use sdl2::render::TextureCreator;
 use sdl2::render::{Texture, WindowCanvas};
 use sdl2::video::WindowContext;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::time::Duration;
 
@@ -97,6 +97,13 @@ impl UnitCharacter {
 
 trait States {
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult;
+    fn process_mouse(
+        &mut self,
+        x: i32,
+        y: i32,
+        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+    );
     fn update(&mut self) -> StateResult;
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
 }
@@ -159,6 +166,21 @@ impl<'a> States for InitState<'a> {
             .unwrap();
 
         StateResult::Default
+    }
+
+    fn process_mouse(
+        &mut self,
+        x: i32,
+        y: i32,
+        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+    ) {
+        if !new_buttons.is_empty() || !old_buttons.is_empty() {
+            println!(
+                "X = {:?}, Y = {:?} : {:?} -> {:?}",
+                x, y, new_buttons, old_buttons
+            );
+        }
     }
 }
 
@@ -226,6 +248,21 @@ impl<'a> States for GameState<'a> {
         unit_char.render(canvas, &texture);
         StateResult::Default
     }
+
+    fn process_mouse(
+        &mut self,
+        x: i32,
+        y: i32,
+        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+    ) {
+        if !new_buttons.is_empty() || !old_buttons.is_empty() {
+            println!(
+                "X = {:?}, Y = {:?} : {:?} -> {:?}",
+                x, y, new_buttons, old_buttons
+            );
+        }
+    }
 }
 
 fn main() -> Result<(), String> {
@@ -247,15 +284,8 @@ fn main() -> Result<(), String> {
 
     let mut states: Vec<Box<dyn States>> = vec![];
     states.push(Box::new(InitState::new(&font_context, &texture_creator)));
-    /*
-    let mut game_state = GameState::new();
-    game_state.add_sprite(
-        &texture_creator,
-        "image".to_string(),
-        "resources/image.png".to_string(),
-    );
-     */
 
+    let mut prev_buttons = HashSet::new();
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -269,6 +299,9 @@ fn main() -> Result<(), String> {
                     //
 
                     if let Some(state) = states.last_mut() {
+                        // state 생성도 여기에서 함
+                        // 각 state에서는 생성할 state를 돌려줄 수 있음
+                        // 전역 state 보관함에서 넣었다 뺐다 해야함
                         match state.process_event(&event) {
                             StateResult::Push(s) => match s {
                                 StateInfo::Game(_name) => {
@@ -297,17 +330,24 @@ fn main() -> Result<(), String> {
 
         // The rest of the game loop goes here...
 
-        // state 생성도 여기에서 함
-        // 각 state에서는 생성할 state를 돌려줄 수 있음
-        // 전역 state 보관함에서 넣었다 뺐다 해야함
+        // mouse 처리는 events를 가지고 함
+        let mouse_state = event_pump.mouse_state();
 
-        //draw(&mut canvas, Color::RGB(i, 64, 255 - i), Some(&texture));
+        // Create a set of pressed Keys.
+        let buttons = mouse_state.pressed_mouse_buttons().collect();
+
+        // Get the difference between the new and old sets.
+        let new_buttons = &buttons - &prev_buttons;
+        let old_buttons = &prev_buttons - &buttons;
+
         canvas.clear();
         if let Some(state) = states.last_mut() {
+            state.process_mouse(mouse_state.x(), mouse_state.y(), &new_buttons, &old_buttons);
             state.update();
             state.render(&mut canvas);
         }
 
+        prev_buttons = buttons;
         canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
