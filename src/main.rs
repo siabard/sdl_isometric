@@ -4,7 +4,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::TextureCreator;
-use sdl2::render::{Texture, WindowCanvas};
+use sdl2::render::{Canvas, Texture, WindowCanvas};
 use sdl2::video::WindowContext;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -14,6 +14,17 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 const DIRECTION: &str = "left";
+
+// 이건 실제 노출되는 물리적인 화면의 크기이다.
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 600;
+
+// 논리적인 게임데이터는 VIRTUAL_* 환경에서 돌아가는 것으로 가정한다.
+const VIRTUAL_WIDTH: u32 = 400;
+const VIRTUAL_HEIGHT: u32 = 300;
+
+const WIDTH_RATIO: f32 = SCREEN_WIDTH as f32 / VIRTUAL_WIDTH as f32;
+const HEIGHT_RATIO: f32 = SCREEN_HEIGHT as f32 / VIRTUAL_HEIGHT as f32;
 
 #[derive(PartialEq, Copy, Clone)]
 enum StateInfo {
@@ -81,11 +92,22 @@ impl UnitCharacter {
     pub fn render(&self, canvas: &mut WindowCanvas, texture: &Texture) {
         let src: Rect = self.animation[self.frame as usize];
 
+        // 캐릭터이 w, h는 VIRTUAL_WIDTH, VIRTUAL_HEIGHT 크기의 화면에 출력된다고 가정
+        // 해당하는 w, h를 SCREEN_WIDTH, SCREEN_HEIGHT에 맞추어 출력해야한다.
+        // w => w * SCREEN_WIDTH / VIRTUAL_WIDTH
+        // h => h * SCREEN_HEIGHT / VIRTUAL_HEIGHT
+
+        let transformed_rect = Rect::new(
+            (self.x as f32 * WIDTH_RATIO) as i32,
+            (self.y as f32 * HEIGHT_RATIO) as i32,
+            (self.w as f32 * WIDTH_RATIO) as u32,
+            (self.h as f32 * HEIGHT_RATIO) as u32,
+        );
         canvas
             .copy_ex(
                 texture,
                 Some(src),
-                Some(Rect::new(self.x, self.y, self.w, self.h)),
+                Some(transformed_rect),
                 0.,
                 None,
                 false,
@@ -93,6 +115,15 @@ impl UnitCharacter {
             )
             .unwrap();
     }
+}
+
+fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
+    Rect::new(
+        (src.x as f32 * ratio_w) as i32,
+        (src.y as f32 * ratio_h) as i32,
+        (src.w as f32 * ratio_w) as u32,
+        (src.h as f32 * ratio_h) as u32,
+    )
 }
 
 trait States {
@@ -157,7 +188,11 @@ impl<'a> States for InitState<'a> {
             .copy_ex(
                 &self.texture,
                 None,
-                Some(Rect::new(0, 0, 400, 300)),
+                Some(transform_rect(
+                    &Rect::new(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT),
+                    WIDTH_RATIO,
+                    HEIGHT_RATIO,
+                )),
                 0.,
                 Some(Point::new(0, 0)),
                 false,
@@ -211,7 +246,12 @@ impl<'a> GameState<'a> {
 
     fn add_unit_char(&mut self, name: &'static str, w: u32, h: u32, max_frame: u32) {
         let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame);
-        uc.set_animation(vec![Rect::new(0, 0, w, h), Rect::new(w as i32, 0, w, h)]);
+        let mut uc_vec = vec![];
+
+        for i in 0..max_frame {
+            uc_vec.push(Rect::new(i as i32 * w as i32, 0, w, h));
+        }
+        uc.set_animation(uc_vec);
         self.unit_char
             .insert(name.to_string(), Rc::new(RefCell::new(uc)));
     }
@@ -312,7 +352,7 @@ fn main() -> Result<(), String> {
                                         "resources/GodotPlayer.png".to_string(),
                                     );
 
-                                    game_state.add_unit_char(DIRECTION, 16, 16, 2);
+                                    game_state.add_unit_char(DIRECTION, 16, 16, 4);
                                     states.push(Box::new(game_state));
                                 }
                                 _ => (),
