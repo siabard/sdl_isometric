@@ -13,6 +13,9 @@ use std::time::Duration;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use num_traits::cast::{FromPrimitive, ToPrimitive};
+use num_traits::int::PrimInt;
+
 const DIRECTION: &str = "left";
 
 // 이건 실제 노출되는 물리적인 화면의 크기이다.
@@ -25,6 +28,9 @@ const VIRTUAL_HEIGHT: u32 = 300;
 
 const WIDTH_RATIO: f32 = SCREEN_WIDTH as f32 / VIRTUAL_WIDTH as f32;
 const HEIGHT_RATIO: f32 = SCREEN_HEIGHT as f32 / VIRTUAL_HEIGHT as f32;
+
+const REVERSE_WIDTH_RATIO: f32 = 1.0 / WIDTH_RATIO;
+const REVERSE_HEIGHT_RATIO: f32 = 1.0 / HEIGHT_RATIO;
 
 #[derive(PartialEq, Copy, Clone)]
 enum StateInfo {
@@ -92,16 +98,16 @@ impl UnitCharacter {
     pub fn render(&self, canvas: &mut WindowCanvas, texture: &Texture) {
         let src: Rect = self.animation[self.frame as usize];
 
-        // 캐릭터이 w, h는 VIRTUAL_WIDTH, VIRTUAL_HEIGHT 크기의 화면에 출력된다고 가정
+        // 캐릭터의 w, h는 VIRTUAL_WIDTH, VIRTUAL_HEIGHT 크기의 화면에 출력된다고 가정
         // 해당하는 w, h를 SCREEN_WIDTH, SCREEN_HEIGHT에 맞추어 출력해야한다.
         // w => w * SCREEN_WIDTH / VIRTUAL_WIDTH
         // h => h * SCREEN_HEIGHT / VIRTUAL_HEIGHT
 
         let transformed_rect = Rect::new(
-            (self.x as f32 * WIDTH_RATIO) as i32,
-            (self.y as f32 * HEIGHT_RATIO) as i32,
-            (self.w as f32 * WIDTH_RATIO) as u32,
-            (self.h as f32 * HEIGHT_RATIO) as u32,
+            transform_value(self.x, WIDTH_RATIO),
+            transform_value(self.y, HEIGHT_RATIO),
+            transform_value(self.w, WIDTH_RATIO),
+            transform_value(self.h, HEIGHT_RATIO),
         );
         canvas
             .copy_ex(
@@ -117,12 +123,20 @@ impl UnitCharacter {
     }
 }
 
+fn transform_value<T>(src: T, ratio: f32) -> T
+where
+    T: PrimInt + ToPrimitive + FromPrimitive,
+{
+    let f_value = src.to_f32().unwrap();
+    FromPrimitive::from_f32(f_value * ratio).unwrap()
+}
+
 fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
     Rect::new(
-        (src.x as f32 * ratio_w) as i32,
-        (src.y as f32 * ratio_h) as i32,
-        (src.w as f32 * ratio_w) as u32,
-        (src.h as f32 * ratio_h) as u32,
+        transform_value(src.x(), ratio_w),
+        transform_value(src.y(), ratio_h),
+        transform_value(src.width(), ratio_w),
+        transform_value(src.height(), ratio_h),
     )
 }
 
@@ -210,10 +224,13 @@ impl<'a> States for InitState<'a> {
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     ) {
+        // 물리적인 좌표를 가상위치값으로 바꾼다.
+        let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
+        let v_y = transform_value(y, REVERSE_WIDTH_RATIO);
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
-                x, y, new_buttons, old_buttons
+                v_x, v_y, new_buttons, old_buttons
             );
         }
     }
@@ -297,9 +314,12 @@ impl<'a> States for GameState<'a> {
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     ) {
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
+            let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
+            let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
+
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
-                x, y, new_buttons, old_buttons
+                v_x, v_y, new_buttons, old_buttons
             );
         }
     }
