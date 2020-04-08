@@ -46,6 +46,88 @@ enum StateResult {
     Default,
 }
 
+/// 화면 입력을 컨트롤할 수 있는
+/// GUI객체
+pub struct GuiElement<'a> {
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    texture_normal: Texture<'a>,
+    texture_hover: Texture<'a>,
+    is_hover: bool,
+}
+
+impl<'a> GuiElement<'a> {
+    fn new(
+        texture_creator: &'a TextureCreator<WindowContext>,
+        normal_path: &Path,
+        hover_path: &Path,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+    ) -> GuiElement<'a> {
+        let texture_normal = texture_creator.load_texture(normal_path).unwrap();
+        let texture_hover = texture_creator.load_texture(hover_path).unwrap();
+
+        GuiElement {
+            x,
+            y,
+            w,
+            h,
+            texture_normal,
+            texture_hover,
+            is_hover: false,
+        }
+    }
+
+    fn update(&mut self) {}
+
+    fn process_event(&mut self, event: &Event) {}
+
+    /// 마우스 입력부분만 여기서 처리
+    fn process_mouse(
+        &mut self,
+        x: i32,
+        y: i32,
+        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+    ) {
+        // x와 y는 physical 데이터
+        // self.x와 self.y 는 transform 된 데이터
+        let rx = transform_value(x, REVERSE_WIDTH_RATIO);
+        let ry = transform_value(y, REVERSE_HEIGHT_RATIO);
+
+        self.is_hover = rx >= self.x
+            && rx <= self.x + self.w as i32
+            && ry >= self.y
+            && ry <= self.y + self.h as i32;
+    }
+
+    fn render(&self, canvas: &mut WindowCanvas) {
+        canvas
+            .copy_ex(
+                if self.is_hover {
+                    &self.texture_hover
+                } else {
+                    &self.texture_normal
+                },
+                None,
+                Some(transform_rect(
+                    &Rect::new(self.x, self.y, self.w, self.h),
+                    WIDTH_RATIO,
+                    HEIGHT_RATIO,
+                )),
+                0.,
+                Some(Point::new(0, 0)),
+                false,
+                false,
+            )
+            .unwrap();
+    }
+}
+
 /// Animation 을 수행하는 내역
 /// 개별 캐릭터는 하나의 UnitCharacter 이다.
 #[derive(Clone, PartialEq)]
@@ -141,7 +223,10 @@ fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
 }
 
 trait States {
+    ///  키 입력 등 일반적인 부분의 처리
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult;
+
+    /// 마우스 입력부분만 여기서 처리
     fn process_mouse(
         &mut self,
         x: i32,
@@ -149,21 +234,34 @@ trait States {
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     );
+
+    /// state 값을 변경시키는 부분에 대한 처리
     fn update(&mut self) -> StateResult;
+
+    /// 화면에 노출시키기
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
 }
 
 struct InitState<'a> {
     //font: sdl2::ttf::Font<'a, 'b>,
     //surface: sdl2::surface::Surface<'a>,
-    texture: Texture<'a>,
+    texture: Option<Texture<'a>>,
+    buttons: HashMap<String, Rc<RefCell<GuiElement<'a>>>>,
 }
 
 impl<'a> InitState<'a> {
-    fn new(
-        font_context: &'a sdl2::ttf::Sdl2TtfContext,
+    fn new() -> InitState<'a> {
+        InitState {
+            texture: None,
+            buttons: HashMap::new(),
+        }
+    }
+
+    fn init(
+        &mut self,
         texture_creator: &'a TextureCreator<WindowContext>,
-    ) -> InitState<'a> {
+        font_context: &'a sdl2::ttf::Sdl2TtfContext,
+    ) {
         let font = font_context
             .load_font(Path::new("resources/hackr.ttf"), 36)
             .unwrap();
@@ -176,7 +274,22 @@ impl<'a> InitState<'a> {
         let texture = texture_creator
             .create_texture_from_surface(&surface)
             .unwrap();
-        InitState { texture }
+
+        self.texture = Some(texture);
+        let start_button = GuiElement::new(
+            texture_creator,
+            &Path::new("resources/btn_normal.png"),
+            &Path::new("resources/btn_hover.png"),
+            10,
+            10,
+            32,
+            32,
+        );
+
+        self.buttons.insert(
+            "start_button".to_owned(),
+            Rc::new(RefCell::new(start_button)),
+        );
     }
 }
 
@@ -196,11 +309,16 @@ impl<'a> States for InitState<'a> {
     }
 
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
-        // 화면에 텍스트를 출력하기
+        // 화면에 버튼을 출력하기
+        let start_button_rc = self.buttons.get(&"start_button".to_owned()).unwrap();
+        let start_button = start_button_rc.borrow();
 
+        start_button.render(canvas);
+
+        // 화면에 텍스트를 출력하기
         canvas
             .copy_ex(
-                &self.texture,
+                self.texture.as_ref().unwrap(),
                 None,
                 Some(transform_rect(
                     &Rect::new(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT),
@@ -224,6 +342,12 @@ impl<'a> States for InitState<'a> {
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     ) {
+        // 화면의 버튼을 이용
+        let start_button_rc = self.buttons.get(&"start_button".to_owned()).unwrap();
+        let mut start_button = start_button_rc.borrow_mut();
+
+        start_button.process_mouse(x, y, new_buttons, old_buttons);
+
         // 물리적인 좌표를 가상위치값으로 바꾼다.
         let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
         let v_y = transform_value(y, REVERSE_WIDTH_RATIO);
@@ -271,6 +395,20 @@ impl<'a> GameState<'a> {
         uc.set_animation(uc_vec);
         self.unit_char
             .insert(name.to_string(), Rc::new(RefCell::new(uc)));
+    }
+
+    fn init(
+        &mut self,
+        texture_creator: &'a TextureCreator<WindowContext>,
+        _font_context: &'a sdl2::ttf::Sdl2TtfContext,
+    ) {
+        self.add_sprite(
+            texture_creator,
+            "image".to_string(),
+            "resources/GodotPlayer.png".to_string(),
+        );
+
+        self.add_unit_char(DIRECTION, 16, 16, 4);
     }
 }
 
@@ -343,7 +481,9 @@ fn main() -> Result<(), String> {
     let mut event_pump = sdl_context.event_pump().expect("ERROR on event_pump");
 
     let mut states: Vec<Box<dyn States>> = vec![];
-    states.push(Box::new(InitState::new(&font_context, &texture_creator)));
+    let mut init_state = InitState::new();
+    init_state.init(&texture_creator, &font_context);
+    states.push(Box::new(init_state));
 
     let mut prev_buttons = HashSet::new();
     'running: loop {
@@ -366,13 +506,7 @@ fn main() -> Result<(), String> {
                             StateResult::Push(s) => match s {
                                 StateInfo::Game(_name) => {
                                     let mut game_state = GameState::new();
-                                    game_state.add_sprite(
-                                        &texture_creator,
-                                        "image".to_string(),
-                                        "resources/GodotPlayer.png".to_string(),
-                                    );
-
-                                    game_state.add_unit_char(DIRECTION, 16, 16, 4);
+                                    game_state.init(&texture_creator, &font_context);
                                     states.push(Box::new(game_state));
                                 }
                                 _ => (),
