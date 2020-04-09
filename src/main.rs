@@ -84,7 +84,7 @@ impl<'a> GuiElement<'a> {
 
     fn update(&mut self) {}
 
-    fn process_event(&mut self, event: &Event) {}
+    fn process_event(&mut self, _event: &Event) {}
 
     /// 마우스 입력부분만 여기서 처리
     fn process_mouse(
@@ -103,6 +103,16 @@ impl<'a> GuiElement<'a> {
             && rx <= self.x + self.w as i32
             && ry >= self.y
             && ry <= self.y + self.h as i32;
+
+        // 버튼 press 체크
+        if self.is_hover && new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
+            println!("Left Button is down");
+        }
+
+        // 버튼 release 체크
+        if self.is_hover && old_buttons.contains(&sdl2::mouse::MouseButton::Left) {
+            println!("Left Button is up");
+        }
     }
 
     fn render(&self, canvas: &mut WindowCanvas) {
@@ -300,20 +310,32 @@ impl<'a> States for InitState<'a> {
                 keycode: Some(Keycode::Q),
                 ..
             } => StateResult::Push(StateInfo::Game("game")),
-            _ => StateResult::Default,
+            _ => {
+                for (_k, v) in self.buttons.iter_mut() {
+                    let mut button = v.borrow_mut();
+                    button.process_event(&event);
+                }
+
+                StateResult::Default
+            }
         }
     }
 
     fn update(&mut self) -> StateResult {
+        // 화면의 모든 버튼에 대한 update
+        for (_k, v) in self.buttons.iter_mut() {
+            let mut button = v.borrow_mut();
+            button.update();
+        }
         StateResult::Default
     }
 
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
-        // 화면에 버튼을 출력하기
-        let start_button_rc = self.buttons.get(&"start_button".to_owned()).unwrap();
-        let start_button = start_button_rc.borrow();
-
-        start_button.render(canvas);
+        // 화면의 모든 버튼을 출력하기
+        for (_k, v) in self.buttons.iter() {
+            let button = v.borrow();
+            button.render(canvas);
+        }
 
         // 화면에 텍스트를 출력하기
         canvas
@@ -343,10 +365,10 @@ impl<'a> States for InitState<'a> {
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     ) {
         // 화면의 버튼을 이용
-        let start_button_rc = self.buttons.get(&"start_button".to_owned()).unwrap();
-        let mut start_button = start_button_rc.borrow_mut();
-
-        start_button.process_mouse(x, y, new_buttons, old_buttons);
+        for (_k, v) in self.buttons.iter_mut() {
+            let mut button = v.borrow_mut();
+            button.process_mouse(x, y, new_buttons, old_buttons);
+        }
 
         // 물리적인 좌표를 가상위치값으로 바꾼다.
         let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
