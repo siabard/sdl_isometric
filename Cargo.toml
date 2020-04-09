@@ -12,3 +12,7 @@ num-traits = "0.2"
 [dependencies.sdl2]
 version="0.33"
 features = ["ttf", "image", "gfx", "mixer"]
+
+[dependencies.uuid]
+version="0.8"
+features = ["serde", "v4"]

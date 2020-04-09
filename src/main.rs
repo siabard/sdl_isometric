@@ -13,11 +13,23 @@ use std::time::Duration;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use uuid::Uuid;
+
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::int::PrimInt;
 
-const DIRECTION: &str = "left";
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum Direction {
+    Left = 0,
+    Right = 1,
+    Up = 2,
+    Down = 3,
+}
 
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum Character {
+    Player = 0,
+}
 // 이건 실제 노출되는 물리적인 화면의 크기이다.
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -49,17 +61,20 @@ enum StateResult {
 /// 화면 입력을 컨트롤할 수 있는
 /// GUI객체
 pub struct GuiElement<'a> {
+    id: Uuid,
     x: i32,
     y: i32,
     w: u32,
     h: u32,
     texture_normal: Texture<'a>,
     texture_hover: Texture<'a>,
-    is_hover: bool,
+    pub is_hover: bool,
+    pub is_clicked: bool,
 }
 
 impl<'a> GuiElement<'a> {
     fn new(
+        id: Uuid,
         texture_creator: &'a TextureCreator<WindowContext>,
         normal_path: &Path,
         hover_path: &Path,
@@ -72,6 +87,7 @@ impl<'a> GuiElement<'a> {
         let texture_hover = texture_creator.load_texture(hover_path).unwrap();
 
         GuiElement {
+            id,
             x,
             y,
             w,
@@ -79,6 +95,7 @@ impl<'a> GuiElement<'a> {
             texture_normal,
             texture_hover,
             is_hover: false,
+            is_clicked: false,
         }
     }
 
@@ -106,12 +123,12 @@ impl<'a> GuiElement<'a> {
 
         // 버튼 press 체크
         if self.is_hover && new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
-            println!("Left Button is down");
+            //println!("Left Button is down");
         }
 
         // 버튼 release 체크
         if self.is_hover && old_buttons.contains(&sdl2::mouse::MouseButton::Left) {
-            println!("Left Button is up");
+            self.is_clicked = true;
         }
     }
 
@@ -135,6 +152,11 @@ impl<'a> GuiElement<'a> {
                 false,
             )
             .unwrap();
+    }
+
+    fn reset(&mut self) {
+        self.is_hover = false;
+        self.is_clicked = false;
     }
 }
 
@@ -250,6 +272,9 @@ trait States {
 
     /// 화면에 노출시키기
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
+
+    /// main loop에서 States의 다음 상태를 요청할 때
+    fn next_result(&mut self) -> StateResult;
 }
 
 struct InitState<'a> {
@@ -257,6 +282,7 @@ struct InitState<'a> {
     //surface: sdl2::surface::Surface<'a>,
     texture: Option<Texture<'a>>,
     buttons: HashMap<String, Rc<RefCell<GuiElement<'a>>>>,
+    state_result: StateResult,
 }
 
 impl<'a> InitState<'a> {
@@ -264,6 +290,7 @@ impl<'a> InitState<'a> {
         InitState {
             texture: None,
             buttons: HashMap::new(),
+            state_result: StateResult::Default,
         }
     }
 
@@ -286,7 +313,10 @@ impl<'a> InitState<'a> {
             .unwrap();
 
         self.texture = Some(texture);
+
+        let start_button_uuid = Uuid::new_v4();
         let start_button = GuiElement::new(
+            start_button_uuid,
             texture_creator,
             &Path::new("resources/btn_normal.png"),
             &Path::new("resources/btn_hover.png"),
@@ -305,20 +335,12 @@ impl<'a> InitState<'a> {
 
 impl<'a> States for InitState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
-        match event {
-            Event::KeyDown {
-                keycode: Some(Keycode::Q),
-                ..
-            } => StateResult::Push(StateInfo::Game("game")),
-            _ => {
-                for (_k, v) in self.buttons.iter_mut() {
-                    let mut button = v.borrow_mut();
-                    button.process_event(&event);
-                }
-
-                StateResult::Default
-            }
+        for (_k, v) in self.buttons.iter_mut() {
+            let mut button = v.borrow_mut();
+            button.process_event(&event);
         }
+
+        StateResult::Default
     }
 
     fn update(&mut self) -> StateResult {
@@ -327,6 +349,18 @@ impl<'a> States for InitState<'a> {
             let mut button = v.borrow_mut();
             button.update();
         }
+
+        // start_button이 클릭되었다면 GameState로 이동해야한다.
+        let start_button_refcell = self.buttons.get(&"start_button".to_owned()).unwrap();
+
+        let mut button = start_button_refcell.borrow_mut();
+        if button.is_clicked {
+            button.reset();
+            self.state_result = StateResult::Push(StateInfo::Game("stage_1"))
+        } else {
+            self.state_result = StateResult::Default
+        }
+
         StateResult::Default
     }
 
@@ -371,6 +405,8 @@ impl<'a> States for InitState<'a> {
         }
 
         // 물리적인 좌표를 가상위치값으로 바꾼다.
+
+        /*
         let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
         let v_y = transform_value(y, REVERSE_WIDTH_RATIO);
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
@@ -379,12 +415,21 @@ impl<'a> States for InitState<'a> {
                 v_x, v_y, new_buttons, old_buttons
             );
         }
+        */
+    }
+
+    fn next_result(&mut self) -> StateResult {
+        let result = self.state_result;
+        self.state_result = StateResult::Default;
+
+        result
     }
 }
 
 struct GameState<'a> {
-    sprites: HashMap<String, Rc<RefCell<Texture<'a>>>>,
-    unit_char: HashMap<String, Rc<RefCell<UnitCharacter>>>,
+    sprites: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
+    unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
+    state_result: StateResult,
 }
 
 impl<'a> GameState<'a> {
@@ -394,20 +439,21 @@ impl<'a> GameState<'a> {
         GameState {
             sprites,
             unit_char: HashMap::new(),
+            state_result: StateResult::Default,
         }
     }
 
     fn add_sprite(
         &mut self,
         creator: &'a TextureCreator<WindowContext>,
-        key: String,
+        key: Character,
         path: String,
     ) {
         let texture = creator.load_texture(Path::new(&path)).unwrap();
         self.sprites.insert(key, Rc::new(RefCell::new(texture)));
     }
 
-    fn add_unit_char(&mut self, name: &'static str, w: u32, h: u32, max_frame: u32) {
+    fn add_unit_char(&mut self, id: Direction, w: u32, h: u32, max_frame: u32) {
         let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame);
         let mut uc_vec = vec![];
 
@@ -415,8 +461,7 @@ impl<'a> GameState<'a> {
             uc_vec.push(Rect::new(i as i32 * w as i32, 0, w, h));
         }
         uc.set_animation(uc_vec);
-        self.unit_char
-            .insert(name.to_string(), Rc::new(RefCell::new(uc)));
+        self.unit_char.insert(id, Rc::new(RefCell::new(uc)));
     }
 
     fn init(
@@ -426,27 +471,29 @@ impl<'a> GameState<'a> {
     ) {
         self.add_sprite(
             texture_creator,
-            "image".to_string(),
+            Character::Player,
             "resources/GodotPlayer.png".to_string(),
         );
 
-        self.add_unit_char(DIRECTION, 16, 16, 4);
+        self.add_unit_char(Direction::Left, 16, 16, 4);
     }
 }
 
 impl<'a> States for GameState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
-        match event {
+        self.state_result = match event {
             Event::KeyDown {
                 keycode: Some(Keycode::Escape),
                 ..
             } => StateResult::Pop,
             _ => StateResult::Default,
-        }
+        };
+
+        StateResult::Default
     }
 
     fn update(&mut self) -> StateResult {
-        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
+        let unit_char_refcell = self.unit_char.get(&Direction::Left).unwrap();
         let mut unit_char = unit_char_refcell.borrow_mut();
 
         unit_char.update();
@@ -456,10 +503,10 @@ impl<'a> States for GameState<'a> {
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
-        let texture_refcell = self.sprites.get(&"image".to_string()).unwrap();
+        let texture_refcell = self.sprites.get(&Character::Player).unwrap();
         let texture = texture_refcell.borrow();
 
-        let unit_char_refcell = self.unit_char.get(&DIRECTION.to_string()).unwrap();
+        let unit_char_refcell = self.unit_char.get(&Direction::Left).unwrap();
         let unit_char = unit_char_refcell.borrow();
 
         unit_char.render(canvas, &texture);
@@ -482,6 +529,13 @@ impl<'a> States for GameState<'a> {
                 v_x, v_y, new_buttons, old_buttons
             );
         }
+    }
+
+    fn next_result(&mut self) -> StateResult {
+        let result = self.state_result;
+        self.state_result = StateResult::Default;
+
+        result
     }
 }
 
@@ -524,21 +578,7 @@ fn main() -> Result<(), String> {
                         // state 생성도 여기에서 함
                         // 각 state에서는 생성할 state를 돌려줄 수 있음
                         // 전역 state 보관함에서 넣었다 뺐다 해야함
-                        match state.process_event(&event) {
-                            StateResult::Push(s) => match s {
-                                StateInfo::Game(_name) => {
-                                    let mut game_state = GameState::new();
-                                    game_state.init(&texture_creator, &font_context);
-                                    states.push(Box::new(game_state));
-                                }
-                                _ => (),
-                            },
-
-                            StateResult::Pop => {
-                                states.pop().unwrap();
-                            }
-                            _ => (),
-                        }
+                        state.process_event(&event);
                     }
                 }
             }
@@ -565,6 +605,25 @@ fn main() -> Result<(), String> {
 
         prev_buttons = buttons;
         canvas.present();
+
+        // State의 최종 결과에 대한 처리
+
+        let state_result = states.last_mut().unwrap().next_result();
+        match state_result {
+            StateResult::Push(s) => match s {
+                StateInfo::Game(_name) => {
+                    let mut game_state = GameState::new();
+                    game_state.init(&texture_creator, &font_context);
+                    states.push(Box::new(game_state));
+                }
+                _ => (),
+            },
+
+            StateResult::Pop => {
+                states.pop().unwrap();
+            }
+            _ => (),
+        }
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 
