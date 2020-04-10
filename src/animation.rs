@@ -17,6 +17,7 @@ pub struct UnitCharacter {
     h: u32,
     frame: u32,
     max_frame: u32,
+    pub fps: u32, // 초당 프레임 수
 }
 
 impl UnitCharacter {
@@ -31,6 +32,7 @@ impl UnitCharacter {
             h: h,
             frame: 0,
             max_frame: max_frame,
+            fps: 0,
         }
     }
 
