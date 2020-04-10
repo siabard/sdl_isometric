@@ -3,6 +3,7 @@ use sdl2::image::InitFlag;
 use std::collections::HashSet;
 use std::time::Duration;
 
+use sdl_isometric::constant::*;
 use sdl_isometric::states::*;
 use sdl_isometric::*;
 
@@ -12,7 +13,7 @@ fn main() -> Result<(), String> {
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let font_context = sdl2::ttf::init().unwrap();
     let window = video_subsystem
-        .window("isometric rust-sdl2 demo", 800, 600)
+        .window("isometric rust-sdl2 demo", SCREEN_WIDTH, SCREEN_HEIGHT)
         .position_centered()
         .resizable()
         .build()

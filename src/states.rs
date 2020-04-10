@@ -1,6 +1,7 @@
 use crate::animation::*;
 use crate::constant::*;
 use crate::gui::*;
+use crate::map::*;
 use crate::*;
 
 use uuid::Uuid;
@@ -201,6 +202,7 @@ pub struct GameState<'a> {
     sprites: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
     unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
     state_result: StateResult,
+    map: Option<Map<'a>>,
 }
 
 impl<'a> GameState<'a> {
@@ -211,6 +213,7 @@ impl<'a> GameState<'a> {
             sprites,
             unit_char: HashMap::new(),
             state_result: StateResult::Default,
+            map: None,
         }
     }
 
@@ -246,7 +249,16 @@ impl<'a> GameState<'a> {
             "resources/GodotPlayer.png".to_string(),
         );
 
+        // 캐릭터 등록
         self.add_unit_char(Direction::Left, 16, 16, 4);
+
+        // 지도 등록
+        let mut map = Map::new(&texture_creator, Path::new("resources/map.png"), 16, 16);
+        map.load_map();
+        map.init_map(0, 0, 0, 16, 16);
+        map.init_map(1, 16, 0, 16, 16);
+        map.init_map(2, 32, 0, 16, 16);
+        self.map = Some(map);
     }
 }
 
@@ -272,6 +284,10 @@ impl<'a> States for GameState<'a> {
         StateResult::Default
     }
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
+        // map 먼저 출력
+        if let Some(map) = &self.map {
+            map.render(canvas);
+        }
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
         let texture_refcell = self.sprites.get(&Character::Player).unwrap();

@@ -53,3 +53,4 @@ pub mod animation;
 pub mod constant;
 pub mod gui;
 pub mod states;
+pub mod map;
