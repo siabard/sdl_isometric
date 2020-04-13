@@ -24,6 +24,9 @@ use sdl2::render::TextureCreator;
 use sdl2::render::WindowCanvas;
 use sdl2::video::WindowContext;
 
+use sdl2::mixer::Chunk;
+use sdl2::mixer::Music;
+
 pub trait States {
     ///  키 입력 등 일반적인 부분의 처리
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult;
@@ -111,7 +114,6 @@ impl<'a> States for InitState<'a> {
             let mut button = v.borrow_mut();
             button.process_event(&event);
         }
-
         StateResult::Default
     }
 
@@ -201,6 +203,8 @@ impl<'a> States for InitState<'a> {
 pub struct GameState<'a> {
     sprites: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
     unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
+    music: Option<Music<'a>>,
+    chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
     map: Option<Map<'a>>,
 }
@@ -214,6 +218,8 @@ impl<'a> GameState<'a> {
             unit_char: HashMap::new(),
             state_result: StateResult::Default,
             map: None,
+            music: None,
+            chunks: HashMap::new(),
         }
     }
 
@@ -238,6 +244,17 @@ impl<'a> GameState<'a> {
         self.unit_char.insert(id, Rc::new(RefCell::new(uc)));
     }
 
+    pub fn add_music(&mut self, path: String) {
+        let music = sdl2::mixer::Music::from_file(&Path::new(&path)).unwrap();
+        self.music = Some(music);
+    }
+
+    pub fn add_sound(&mut self, key: String, path: String) {
+        let chunk = sdl2::mixer::Chunk::from_file(&Path::new(&path)).unwrap();
+
+        self.chunks.insert(key, Rc::new(RefCell::new(chunk)));
+    }
+
     pub fn init(
         &mut self,
         texture_creator: &'a TextureCreator<WindowContext>,
@@ -259,6 +276,12 @@ impl<'a> GameState<'a> {
         map.init_map(1, 16, 0, 16, 16);
         map.init_map(2, 32, 0, 16, 16);
         self.map = Some(map);
+
+        // 음원 등록
+        self.add_music("resources/beat.wav".to_owned());
+
+        self.add_sound("high".to_owned(), "resources/high.wav".to_owned());
+        self.add_sound("low".to_owned(), "resources/low.wav".to_owned());
     }
 }
 
@@ -269,6 +292,39 @@ impl<'a> States for GameState<'a> {
                 keycode: Some(Keycode::Escape),
                 ..
             } => StateResult::Pop,
+            Event::KeyDown {
+                keycode: Some(Keycode::Num1),
+                ..
+            } => {
+                let chunk = self.chunks.get(&"high".to_owned()).unwrap().borrow();
+                sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                return StateResult::Default;
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Num2),
+                ..
+            } => {
+                let chunk = self.chunks.get(&"low".to_owned()).unwrap().borrow();
+                sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                return StateResult::Default;
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Num0),
+                ..
+            } => {
+                let music = self.music.as_ref().unwrap();
+
+                if sdl2::mixer::Music::is_playing() == false {
+                    music.play(-1).unwrap();
+                } else {
+                    if sdl2::mixer::Music::is_paused() {
+                        sdl2::mixer::Music::resume();
+                    } else {
+                        sdl2::mixer::Music::pause();
+                    }
+                }
+                return StateResult::Default;
+            }
             _ => StateResult::Default,
         };
 

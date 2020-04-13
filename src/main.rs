@@ -12,6 +12,23 @@ fn main() -> Result<(), String> {
     let video_subsystem = sdl_context.video().expect("ERROR on Video_subsystem");
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let font_context = sdl2::ttf::init().unwrap();
+
+    let _audio = sdl_context.audio().expect("ERROR on audio_subsystem");
+
+    let frequency = 44_100;
+    let format = sdl2::mixer::DEFAULT_FORMAT;
+    let channels = sdl2::mixer::DEFAULT_CHANNELS;
+    let chunk_size = 2_024;
+    sdl2::mixer::open_audio(frequency, format, channels, chunk_size)?;
+
+    let _mixer_context = sdl2::mixer::init(
+        sdl2::mixer::InitFlag::MP3
+            | sdl2::mixer::InitFlag::FLAC
+            | sdl2::mixer::InitFlag::MOD
+            | sdl2::mixer::InitFlag::OGG,
+    )
+    .expect("ERROR ON makeing mixer context");
+
     let window = video_subsystem
         .window("isometric rust-sdl2 demo", SCREEN_WIDTH, SCREEN_HEIGHT)
         .position_centered()
