@@ -41,7 +41,7 @@ pub trait States {
     );
 
     /// state 값을 변경시키는 부분에 대한 처리
-    fn update(&mut self) -> StateResult;
+    fn update(&mut self, dt: f64) -> StateResult;
 
     /// 화면에 노출시키기
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
@@ -117,7 +117,7 @@ impl<'a> States for InitState<'a> {
         StateResult::Default
     }
 
-    fn update(&mut self) -> StateResult {
+    fn update(&mut self, _dt: f64) -> StateResult {
         // 화면의 모든 버튼에 대한 update
         for (_k, v) in self.buttons.iter_mut() {
             let mut button = v.borrow_mut();
@@ -331,11 +331,11 @@ impl<'a> States for GameState<'a> {
         StateResult::Default
     }
 
-    fn update(&mut self) -> StateResult {
+    fn update(&mut self, dt: f64) -> StateResult {
         let unit_char_refcell = self.unit_char.get(&Direction::Left).unwrap();
         let mut unit_char = unit_char_refcell.borrow_mut();
 
-        unit_char.update();
+        unit_char.update(dt);
 
         StateResult::Default
     }

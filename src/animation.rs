@@ -17,7 +17,8 @@ pub struct UnitCharacter {
     h: u32,
     frame: u32,
     max_frame: u32,
-    pub fps: u32, // 초당 프레임 수
+    timer: f64,
+    pub span: f64, // 한 프레임에 필요한 시간
 }
 
 impl UnitCharacter {
@@ -32,7 +33,8 @@ impl UnitCharacter {
             h: h,
             frame: 0,
             max_frame: max_frame,
-            fps: 0,
+            timer: 0.0f64,
+            span: 1.0 / 4.0, // 초당 4 프레임을 움직인다.
         }
     }
 
@@ -47,11 +49,18 @@ impl UnitCharacter {
     }
 
     /// 해당 캐릭터를 움직이게한다.
-    pub fn update(&mut self) {
-        // 뭔가를 합니다.
-        self.frame = self.frame + 1;
-        if self.frame >= self.max_frame {
-            self.frame = 0;
+    pub fn update(&mut self, dt: f64) {
+        // timer에 dt를 누적해서 span보다 커지면 한 프레임씩 증가한다.
+        // 이렇게 하면 1초에 몇프레임 식으로 애니메이션을 조작할 수 있다.
+
+        self.timer += dt;
+
+        if self.timer > self.span {
+            self.frame = self.frame + 1;
+            if self.frame >= self.max_frame {
+                self.frame = 0;
+            }
+            self.timer = 0.0;
         }
     }
 

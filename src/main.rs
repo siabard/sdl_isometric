@@ -84,7 +84,7 @@ fn main() -> Result<(), String> {
         canvas.clear();
         if let Some(state) = states.last_mut() {
             state.process_mouse(mouse_state.x(), mouse_state.y(), &new_buttons, &old_buttons);
-            state.update();
+            state.update(DELTA_T);
             state.render(&mut canvas);
         }
 
@@ -109,7 +109,7 @@ fn main() -> Result<(), String> {
             }
             _ => (),
         }
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        ::std::thread::sleep(Duration::new(0, TIME_SPAN));
     }
 
     Ok(())

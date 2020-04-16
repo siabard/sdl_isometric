@@ -11,3 +11,7 @@ pub const HEIGHT_RATIO: f32 = SCREEN_HEIGHT as f32 / VIRTUAL_HEIGHT as f32;
 
 pub const REVERSE_WIDTH_RATIO: f32 = 1.0 / WIDTH_RATIO;
 pub const REVERSE_HEIGHT_RATIO: f32 = 1.0 / HEIGHT_RATIO;
+
+// delta t설정하기
+pub const TIME_SPAN: u32 = 1_000_000_000 / 60;
+pub const DELTA_T: f64 = 1.0f64 / 60.0;
