@@ -200,45 +200,58 @@ impl<'a> States for InitState<'a> {
     }
 }
 
+/// 게임 실행용 State
 pub struct GameState<'a> {
-    sprites: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
+    textures: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
     unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
     map: Option<Map<'a>>,
+    direction: Direction,
 }
 
 impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
-        let sprites = HashMap::new();
+        let textures = HashMap::new();
 
         GameState {
-            sprites,
+            textures,
             unit_char: HashMap::new(),
             state_result: StateResult::Default,
             map: None,
             music: None,
             chunks: HashMap::new(),
+            direction: Direction::Down,
         }
     }
 
-    pub fn add_sprite(
+    pub fn add_texture(
         &mut self,
         creator: &'a TextureCreator<WindowContext>,
         key: Character,
         path: String,
     ) {
         let texture = creator.load_texture(Path::new(&path)).unwrap();
-        self.sprites.insert(key, Rc::new(RefCell::new(texture)));
+        self.textures.insert(key, Rc::new(RefCell::new(texture)));
     }
 
-    pub fn add_unit_char(&mut self, id: Direction, w: u32, h: u32, max_frame: u32) {
-        let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame);
+    pub fn add_unit_char(
+        &mut self,
+        id: Direction,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+        max_frame: u32,
+        fliph: bool,
+        flipv: bool,
+    ) {
+        let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame, fliph, flipv);
         let mut uc_vec = vec![];
 
         for i in 0..max_frame {
-            uc_vec.push(Rect::new(i as i32 * w as i32, 0, w, h));
+            uc_vec.push(Rect::new(x + i as i32 * w as i32, y, w, h));
         }
         uc.set_animation(uc_vec);
         self.unit_char.insert(id, Rc::new(RefCell::new(uc)));
@@ -260,14 +273,17 @@ impl<'a> GameState<'a> {
         texture_creator: &'a TextureCreator<WindowContext>,
         _font_context: &'a sdl2::ttf::Sdl2TtfContext,
     ) {
-        self.add_sprite(
+        self.add_texture(
             texture_creator,
             Character::Player,
             "resources/GodotPlayer.png".to_string(),
         );
 
-        // 캐릭터 등록
-        self.add_unit_char(Direction::Left, 16, 16, 4);
+        // 캐릭터 애니메이션 생성
+        self.add_unit_char(Direction::Down, 0, 0, 16, 16, 2, false, false);
+        self.add_unit_char(Direction::Left, 32, 0, 16, 16, 2, true, false);
+        self.add_unit_char(Direction::Up, 64, 0, 16, 16, 2, false, false);
+        self.add_unit_char(Direction::Right, 32, 0, 16, 16, 2, false, false);
 
         // 지도 등록
         let mut map = Map::new(&texture_creator, Path::new("resources/map.png"), 16, 16);
@@ -288,6 +304,37 @@ impl<'a> GameState<'a> {
 impl<'a> States for GameState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
         self.state_result = match event {
+            Event::KeyDown {
+                keycode: Some(Keycode::Up),
+                ..
+            } => {
+                self.direction = Direction::Up;
+                StateResult::Default
+            }
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Down),
+                ..
+            } => {
+                self.direction = Direction::Down;
+                StateResult::Default
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Left),
+                ..
+            } => {
+                self.direction = Direction::Left;
+                StateResult::Default
+            }
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Right),
+                ..
+            } => {
+                self.direction = Direction::Right;
+                StateResult::Default
+            }
+
             Event::KeyDown {
                 keycode: Some(Keycode::Escape),
                 ..
@@ -332,7 +379,7 @@ impl<'a> States for GameState<'a> {
     }
 
     fn update(&mut self, dt: f64) -> StateResult {
-        let unit_char_refcell = self.unit_char.get(&Direction::Left).unwrap();
+        let unit_char_refcell = self.unit_char.get(&self.direction).unwrap();
         let mut unit_char = unit_char_refcell.borrow_mut();
 
         unit_char.update(dt);
@@ -346,10 +393,10 @@ impl<'a> States for GameState<'a> {
         }
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
-        let texture_refcell = self.sprites.get(&Character::Player).unwrap();
+        let texture_refcell = self.textures.get(&Character::Player).unwrap();
         let texture = texture_refcell.borrow();
 
-        let unit_char_refcell = self.unit_char.get(&Direction::Left).unwrap();
+        let unit_char_refcell = self.unit_char.get(&self.direction).unwrap();
         let unit_char = unit_char_refcell.borrow();
 
         unit_char.render(canvas, &texture);

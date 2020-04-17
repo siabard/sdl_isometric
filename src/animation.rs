@@ -18,12 +18,14 @@ pub struct UnitCharacter {
     frame: u32,
     max_frame: u32,
     timer: f64,
-    pub span: f64, // 한 프레임에 필요한 시간
+    pub span: f64,   // 한 프레임에 필요한 시간
+    pub fliph: bool, // 좌우반전
+    pub flipv: bool, // 세로반전
 }
 
 impl UnitCharacter {
     /// 개별 캐릭터를 등록한다.
-    pub fn new(w: u32, h: u32, max_frame: u32) -> UnitCharacter {
+    pub fn new(w: u32, h: u32, max_frame: u32, fliph: bool, flipv: bool) -> UnitCharacter {
         UnitCharacter {
             hitbox: None,
             animation: vec![],
@@ -35,6 +37,8 @@ impl UnitCharacter {
             max_frame: max_frame,
             timer: 0.0f64,
             span: 1.0 / 4.0, // 초당 4 프레임을 움직인다.
+            fliph: fliph,
+            flipv: flipv,
         }
     }
 
@@ -86,8 +90,8 @@ impl UnitCharacter {
                 Some(transformed_rect),
                 0.,
                 None,
-                false,
-                false,
+                self.fliph,
+                self.flipv,
             )
             .unwrap();
     }
