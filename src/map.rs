@@ -1,6 +1,6 @@
 use crate::constant::*;
+use crate::texture_manager::*;
 use crate::*;
-
 use sdl2::image::LoadTexture;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
@@ -18,25 +18,18 @@ const MAP_HEIGHT: i32 = 15;
 /// 지도용 구조체
 /// 지도에는 map용 파일과
 /// 각 map 블럭에 대한 정보를 넣는다.
-pub struct Map<'a> {
-    texture: Texture<'a>,
+pub struct Map {
+    map_id: String,
     blocks: HashMap<i32, Rect>,
     map: Vec<i32>,
     cell_width: u32,
     cell_height: u32,
 }
 
-impl<'a> Map<'a> {
-    pub fn new(
-        texture_creator: &'a TextureCreator<WindowContext>,
-        texture_path: &Path,
-        w: u32,
-        h: u32,
-    ) -> Map<'a> {
-        let texture = texture_creator.load_texture(texture_path).unwrap();
-
+impl Map {
+    pub fn new(map_id: String, w: u32, h: u32) -> Map {
         Map {
-            texture,
+            map_id,
             blocks: HashMap::new(),
             map: vec![],
             cell_width: w,
@@ -74,7 +67,9 @@ impl<'a> Map<'a> {
         ];
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas) {
+    pub fn render(&self, canvas: &mut WindowCanvas, texture_manager: &TextureManager) {
+        let texture_ref = texture_manager.textures.get(&self.map_id).unwrap();
+        let texture = texture_ref.borrow();
         for y in 0..MAP_HEIGHT {
             for x in 0..MAP_WIDTH {
                 let idx = (y * MAP_WIDTH + x) as usize;
@@ -82,7 +77,7 @@ impl<'a> Map<'a> {
                     if let Some(map) = self.blocks.get(map_value) {
                         canvas
                             .copy_ex(
-                                &self.texture,
+                                &texture,
                                 Some(*map),
                                 Some(transform_rect(
                                     &Rect::new(

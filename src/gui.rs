@@ -1,15 +1,11 @@
 use crate::constant::*;
+use crate::texture_manager::*;
 use crate::*;
 
 use sdl2::event::Event;
-use sdl2::image::LoadTexture;
-use sdl2::rect::{Point, Rect};
-use sdl2::render::Texture;
-use sdl2::render::TextureCreator;
+use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
-use sdl2::video::WindowContext;
 use std::collections::HashSet;
-use std::path::Path;
 use uuid::Uuid;
 
 /// collision detection
@@ -22,31 +18,48 @@ pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
 
 /// 화면 입력을 컨트롤할 수 있는
 /// GUI객체
-pub struct GuiElement<'a> {
+pub struct GuiElement {
     id: Uuid,
     x: i32,
     y: i32,
     w: u32,
     h: u32,
-    texture_normal: Texture<'a>,
-    texture_hover: Texture<'a>,
+    texture_normal: Sprite,
+    texture_hover: Sprite,
     pub is_hover: bool,
     pub is_clicked: bool,
 }
 
-impl<'a> GuiElement<'a> {
+impl GuiElement {
     pub fn new(
         id: Uuid,
-        texture_creator: &'a TextureCreator<WindowContext>,
-        normal_path: &Path,
-        hover_path: &Path,
+        texture_normal: (String, String),
+        texture_hover: (String, String),
         x: i32,
         y: i32,
         w: u32,
         h: u32,
-    ) -> GuiElement<'a> {
-        let texture_normal = texture_creator.load_texture(normal_path).unwrap();
-        let texture_hover = texture_creator.load_texture(hover_path).unwrap();
+    ) -> GuiElement {
+        let texture_normal = Sprite::new(
+            texture_normal.0,
+            texture_normal.1,
+            Rect::new(0, 0, w, h),
+            Rect::new(x, y, w, h),
+            None,
+            0.0,
+            false,
+            false,
+        );
+        let texture_hover = Sprite::new(
+            texture_hover.0,
+            texture_hover.1,
+            Rect::new(0, 0, w, h),
+            Rect::new(x, y, w, h),
+            None,
+            0.0,
+            false,
+            false,
+        );
 
         GuiElement {
             id,
@@ -94,26 +107,12 @@ impl<'a> GuiElement<'a> {
         }
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas) {
-        canvas
-            .copy_ex(
-                if self.is_hover {
-                    &self.texture_hover
-                } else {
-                    &self.texture_normal
-                },
-                None,
-                Some(transform_rect(
-                    &Rect::new(self.x, self.y, self.w, self.h),
-                    WIDTH_RATIO,
-                    HEIGHT_RATIO,
-                )),
-                0.,
-                Some(Point::new(0, 0)),
-                false,
-                false,
-            )
-            .unwrap();
+    pub fn render(&self, canvas: &mut WindowCanvas, texture_manager: &TextureManager) {
+        if self.is_hover {
+            self.texture_hover.render(canvas, texture_manager);
+        } else {
+            self.texture_normal.render(canvas, texture_manager);
+        }
     }
 
     pub fn reset(&mut self) {

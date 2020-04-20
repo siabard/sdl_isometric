@@ -2,6 +2,7 @@ use crate::animation::*;
 use crate::constant::*;
 use crate::gui::*;
 use crate::map::*;
+use crate::texture_manager::*;
 use crate::*;
 
 use uuid::Uuid;
@@ -55,15 +56,15 @@ pub trait States {
 pub struct InitState<'a> {
     //font: sdl2::ttf::Font<'a, 'b>,
     //surface: sdl2::surface::Surface<'a>,
-    texture: Option<Texture<'a>>,
-    buttons: HashMap<String, Rc<RefCell<GuiElement<'a>>>>,
+    texture_manager: Option<TextureManager<'a>>,
+    buttons: HashMap<String, GuiElement>,
     state_result: StateResult,
 }
 
 impl<'a> InitState<'a> {
     pub fn new() -> InitState<'a> {
         InitState {
-            texture: None,
+            texture_manager: None,
             buttons: HashMap::new(),
             state_result: StateResult::Default,
         }
@@ -74,6 +75,8 @@ impl<'a> InitState<'a> {
         texture_creator: &'a TextureCreator<WindowContext>,
         font_context: &'a sdl2::ttf::Sdl2TtfContext,
     ) {
+        self.texture_manager = Some(TextureManager::new());
+
         let font = font_context
             .load_font(Path::new("resources/hackr.ttf"), 36)
             .unwrap();
@@ -87,31 +90,51 @@ impl<'a> InitState<'a> {
             .create_texture_from_surface(&surface)
             .unwrap();
 
-        self.texture = Some(texture);
+        let texture_manager = self.texture_manager.as_mut().unwrap();
+
+        texture_manager.add_texture("text".to_owned(), Rc::new(RefCell::new(texture)));
+
+        texture_manager.load_texture(
+            "normal_button".to_string(),
+            texture_creator,
+            &Path::new("resources/btn_normal.png"),
+        );
+        texture_manager.load_texture(
+            "hover_button".to_string(),
+            texture_creator,
+            &Path::new("resources/btn_hover.png"),
+        );
+
+        let text = GuiElement::new(
+            Uuid::new_v4(),
+            ("text".to_owned(), "init_state".to_string()),
+            ("text".to_owned(), "init_state".to_string()),
+            0,
+            0,
+            surface.width(),
+            surface.height(),
+        );
+
+        self.buttons.insert("text".to_owned(), text);
 
         let start_button_uuid = Uuid::new_v4();
         let start_button = GuiElement::new(
             start_button_uuid,
-            texture_creator,
-            &Path::new("resources/btn_normal.png"),
-            &Path::new("resources/btn_hover.png"),
-            10,
-            10,
+            ("normal_button".to_string(), "normal_button".to_string()),
+            ("hover_button".to_string(), "hover_button".to_string()),
+            100,
+            100,
             32,
             32,
         );
 
-        self.buttons.insert(
-            "start_button".to_owned(),
-            Rc::new(RefCell::new(start_button)),
-        );
+        self.buttons.insert("start_button".to_owned(), start_button);
     }
 }
 
 impl<'a> States for InitState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
-        for (_k, v) in self.buttons.iter_mut() {
-            let mut button = v.borrow_mut();
+        for (_k, button) in self.buttons.iter_mut() {
             button.process_event(&event);
         }
         StateResult::Default
@@ -119,17 +142,15 @@ impl<'a> States for InitState<'a> {
 
     fn update(&mut self, _dt: f64) -> StateResult {
         // 화면의 모든 버튼에 대한 update
-        for (_k, v) in self.buttons.iter_mut() {
-            let mut button = v.borrow_mut();
+        for (_k, button) in self.buttons.iter_mut() {
             button.update();
         }
 
         // start_button이 클릭되었다면 GameState로 이동해야한다.
-        let start_button_refcell = self.buttons.get(&"start_button".to_owned()).unwrap();
+        let start_button = self.buttons.get_mut(&"start_button".to_owned()).unwrap();
 
-        let mut button = start_button_refcell.borrow_mut();
-        if button.is_clicked {
-            button.reset();
+        if start_button.is_clicked {
+            start_button.reset();
             self.state_result = StateResult::Push(StateInfo::Game("stage_1"))
         } else {
             self.state_result = StateResult::Default
@@ -139,28 +160,10 @@ impl<'a> States for InitState<'a> {
     }
 
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
-        // 화면의 모든 버튼을 출력하기
-        for (_k, v) in self.buttons.iter() {
-            let button = v.borrow();
-            button.render(canvas);
+        // 화면의 모든 GUI요소를 출력하기
+        for (_k, button) in self.buttons.iter() {
+            button.render(canvas, self.texture_manager.as_ref().unwrap());
         }
-
-        // 화면에 텍스트를 출력하기
-        canvas
-            .copy_ex(
-                self.texture.as_ref().unwrap(),
-                None,
-                Some(transform_rect(
-                    &Rect::new(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT),
-                    WIDTH_RATIO,
-                    HEIGHT_RATIO,
-                )),
-                0.,
-                Some(Point::new(0, 0)),
-                false,
-                false,
-            )
-            .unwrap();
 
         StateResult::Default
     }
@@ -173,8 +176,7 @@ impl<'a> States for InitState<'a> {
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
     ) {
         // 화면의 버튼을 이용
-        for (_k, v) in self.buttons.iter_mut() {
-            let mut button = v.borrow_mut();
+        for (_k, button) in self.buttons.iter_mut() {
             button.process_mouse(x, y, new_buttons, old_buttons);
         }
 
@@ -202,21 +204,20 @@ impl<'a> States for InitState<'a> {
 
 /// 게임 실행용 State
 pub struct GameState<'a> {
-    textures: HashMap<Character, Rc<RefCell<Texture<'a>>>>,
+    texture_manager: TextureManager<'a>,
     unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
-    map: Option<Map<'a>>,
+    map: Option<Map>,
     direction: Direction,
 }
 
 impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
-        let textures = HashMap::new();
-
+        let texture_manager = TextureManager::new();
         GameState {
-            textures,
+            texture_manager,
             unit_char: HashMap::new(),
             state_result: StateResult::Default,
             map: None,
@@ -228,12 +229,12 @@ impl<'a> GameState<'a> {
 
     pub fn add_texture(
         &mut self,
-        creator: &'a TextureCreator<WindowContext>,
-        key: Character,
+        texture_creator: &'a TextureCreator<WindowContext>,
+        key: String,
         path: String,
     ) {
-        let texture = creator.load_texture(Path::new(&path)).unwrap();
-        self.textures.insert(key, Rc::new(RefCell::new(texture)));
+        self.texture_manager
+            .load_texture(key, texture_creator, Path::new(&path));
     }
 
     pub fn add_unit_char(
@@ -275,7 +276,7 @@ impl<'a> GameState<'a> {
     ) {
         self.add_texture(
             texture_creator,
-            Character::Player,
+            String::from(Character::PLAYER),
             "resources/GodotPlayer.png".to_string(),
         );
 
@@ -286,7 +287,12 @@ impl<'a> GameState<'a> {
         self.add_unit_char(Direction::Right, 32, 0, 16, 16, 2, false, false);
 
         // 지도 등록
-        let mut map = Map::new(&texture_creator, Path::new("resources/map.png"), 16, 16);
+        self.add_texture(
+            texture_creator,
+            "map".to_string(),
+            "resources/map.png".to_string(),
+        );
+        let mut map = Map::new("map".to_owned(), 16, 16);
         map.load_map();
         map.init_map(0, 0, 0, 16, 16);
         map.init_map(1, 16, 0, 16, 16);
@@ -389,11 +395,15 @@ impl<'a> States for GameState<'a> {
     fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
         // map 먼저 출력
         if let Some(map) = &self.map {
-            map.render(canvas);
+            map.render(canvas, &self.texture_manager);
         }
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
-        let texture_refcell = self.textures.get(&Character::Player).unwrap();
+        let texture_refcell = self
+            .texture_manager
+            .textures
+            .get(&String::from(Character::PLAYER))
+            .unwrap();
         let texture = texture_refcell.borrow();
 
         let unit_char_refcell = self.unit_char.get(&self.direction).unwrap();

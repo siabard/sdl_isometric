@@ -13,9 +13,8 @@ pub enum Direction {
 }
 
 /// 캐릭터 분류
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Character {
-    Player = 0,
+pub mod Character {
+    pub const PLAYER: &'static str = "player";
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -52,5 +51,6 @@ pub fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
 pub mod animation;
 pub mod constant;
 pub mod gui;
-pub mod states;
 pub mod map;
+pub mod states;
+pub mod texture_manager;
