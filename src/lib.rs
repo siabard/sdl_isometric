@@ -13,7 +13,7 @@ pub enum Direction {
 }
 
 /// 캐릭터 분류
-pub mod Character {
+pub mod character {
     pub const PLAYER: &'static str = "player";
 }
 

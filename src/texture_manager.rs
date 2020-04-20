@@ -29,6 +29,7 @@ impl<'a> TextureManager<'a> {
         self.textures.clear();
     }
 
+    /// 이미지로부터 텍스쳐를 생성하여 가져옴
     pub fn load_texture(
         &mut self,
         texture_id: String,
@@ -40,8 +41,14 @@ impl<'a> TextureManager<'a> {
             .insert(texture_id, Rc::new(RefCell::new(texture)));
     }
 
+    /// Texture 를 추가함
     pub fn add_texture(&mut self, texture_id: String, texture: Rc<RefCell<Texture<'a>>>) {
         self.textures.insert(texture_id, texture);
+    }
+
+    /// Texture 를 삭제함
+    pub fn remove_texture(&mut self, texture_id: String) {
+        self.textures.remove(&texture_id);
     }
 }
 
@@ -82,6 +89,7 @@ impl Sprite {
     }
 
     /// 스프라이트에 대한 랜더링
+    /// 가상화면에 출력하는 것을 전제로 함
     pub fn render(&self, canvas: &mut WindowCanvas, texture_manager: &TextureManager) {
         let texture = texture_manager.textures.get(&self.texture_id).unwrap();
 

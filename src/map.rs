@@ -1,16 +1,11 @@
 use crate::constant::*;
 use crate::texture_manager::*;
 use crate::*;
-use sdl2::image::LoadTexture;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
-use sdl2::render::Texture;
-use sdl2::render::TextureCreator;
 use sdl2::render::WindowCanvas;
-use sdl2::video::WindowContext;
 
 use std::collections::HashMap;
-use std::path::Path;
 
 const MAP_WIDTH: i32 = 20;
 const MAP_HEIGHT: i32 = 15;

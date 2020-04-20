@@ -15,12 +15,9 @@ use std::path::Path;
 use std::rc::Rc;
 
 use sdl2::event::Event;
-use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::Point;
 use sdl2::rect::Rect;
-use sdl2::render::Texture;
 use sdl2::render::TextureCreator;
 use sdl2::render::WindowCanvas;
 use sdl2::video::WindowContext;
@@ -276,7 +273,7 @@ impl<'a> GameState<'a> {
     ) {
         self.add_texture(
             texture_creator,
-            String::from(Character::PLAYER),
+            String::from(character::PLAYER),
             "resources/GodotPlayer.png".to_string(),
         );
 
@@ -402,7 +399,7 @@ impl<'a> States for GameState<'a> {
         let texture_refcell = self
             .texture_manager
             .textures
-            .get(&String::from(Character::PLAYER))
+            .get(&String::from(character::PLAYER))
             .unwrap();
         let texture = texture_refcell.borrow();
 

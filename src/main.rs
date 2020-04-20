@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use sdl_isometric::constant::*;
 use sdl_isometric::states::*;
-use sdl_isometric::texture_manager::*;
 use sdl_isometric::*;
 
 fn main() -> Result<(), String> {
@@ -41,9 +40,6 @@ fn main() -> Result<(), String> {
     let mut canvas = window.into_canvas().build().expect("ERROR on canvas");
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().expect("ERROR on event_pump");
-
-    // TextureManager 생성하기
-    let mut texture_manager = TextureManager::new();
 
     // State 생성하기
     let mut states: Vec<Box<dyn States>> = vec![];
