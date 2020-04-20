@@ -8,14 +8,6 @@ use sdl2::render::WindowCanvas;
 use std::collections::HashSet;
 use uuid::Uuid;
 
-/// collision detection
-pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
-    p1.x < p2.x + p2.width() as i32
-        && p1.x + p1.width() as i32 > p2.x
-        && p1.y < p2.y + p2.height() as i32
-        && p1.y + p1.height() as i32 > p2.y
-}
-
 /// 화면 입력을 컨트롤할 수 있는
 /// GUI객체
 pub struct GuiElement {
