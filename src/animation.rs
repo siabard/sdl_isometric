@@ -36,7 +36,7 @@ impl UnitCharacter {
             frame: 0,
             max_frame: max_frame,
             timer: 0.0f64,
-            span: 1.0 / 4.0, // 초당 4 프레임을 움직인다.
+            span: 1.0 / 4.0, // 0.25초마당 한 프레임, 즉 초당 4 프레임을 움직인다.
             fliph: fliph,
             flipv: flipv,
         }

@@ -1,18 +1,23 @@
 use sdl2::event::Event;
 use sdl2::image::InitFlag;
-use std::collections::HashSet;
-use std::time::Duration;
-
+use sdl2::TimerSubsystem;
 use sdl_isometric::constant::*;
 use sdl_isometric::states::*;
 use sdl_isometric::*;
+use std::collections::HashSet;
+use std::time::Duration;
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init().expect("ERROR on SDL CONTEXT");
+
+    // Video
     let video_subsystem = sdl_context.video().expect("ERROR on Video_subsystem");
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let font_context = sdl2::ttf::init().unwrap();
 
+    // Timer
+    let mut timer_subsystem: TimerSubsystem = sdl_context.timer().unwrap();
+    // Audio
     let _audio = sdl_context.audio().expect("ERROR on audio_subsystem");
 
     let frequency = 44_100;
@@ -48,7 +53,14 @@ fn main() -> Result<(), String> {
     states.push(Box::new(init_state));
 
     let mut prev_buttons = HashSet::new();
+
+    // delta time
+    let mut dt: f64;
+    let mut now: u32 = timer_subsystem.ticks();
+    let mut last_time: u32 = 0;
     'running: loop {
+        dt = (now - last_time) as f64 / 1000.; // 1000분의 1초로 dt를 계산한다.
+        last_time = now;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'running,
@@ -85,7 +97,7 @@ fn main() -> Result<(), String> {
         canvas.clear();
         if let Some(state) = states.last_mut() {
             state.process_mouse(mouse_state.x(), mouse_state.y(), &new_buttons, &old_buttons);
-            state.update(DELTA_T);
+            state.update(dt);
             state.render(&mut canvas);
         }
 
@@ -111,6 +123,7 @@ fn main() -> Result<(), String> {
             _ => (),
         }
         ::std::thread::sleep(Duration::new(0, TIME_SPAN));
+        now = timer_subsystem.ticks();
     }
 
     Ok(())
