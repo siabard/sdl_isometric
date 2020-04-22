@@ -27,7 +27,7 @@ use sdl2::mixer::Music;
 
 pub trait States {
     ///  키 입력 등 일반적인 부분의 처리
-    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult;
+    fn process_event(&mut self, event: &sdl2::event::Event, dt: f64) -> StateResult;
 
     /// 마우스 입력부분만 여기서 처리
     fn process_mouse(
@@ -36,6 +36,7 @@ pub trait States {
         y: i32,
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        dt: f64,
     );
 
     /// state 값을 변경시키는 부분에 대한 처리
@@ -130,7 +131,7 @@ impl<'a> InitState<'a> {
 }
 
 impl<'a> States for InitState<'a> {
-    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
+    fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
         for (_k, button) in self.buttons.iter_mut() {
             button.process_event(&event);
         }
@@ -171,6 +172,7 @@ impl<'a> States for InitState<'a> {
         y: i32,
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _dt: f64,
     ) {
         // 화면의 버튼을 이용
         for (_k, button) in self.buttons.iter_mut() {
@@ -202,25 +204,26 @@ impl<'a> States for InitState<'a> {
 /// 게임 실행용 State
 pub struct GameState<'a> {
     texture_manager: TextureManager<'a>,
-    unit_char: HashMap<Direction, Rc<RefCell<UnitCharacter>>>,
+    unit_char: UnitCharacter,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
     map: Option<Map>,
-    direction: Direction,
+    keyboards: HashSet<sdl2::keyboard::Keycode>,
 }
 
 impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
         let texture_manager = TextureManager::new();
+        let unit_char = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
         GameState {
             texture_manager,
-            unit_char: HashMap::new(),
+            unit_char,
             state_result: StateResult::Default,
             map: None,
             music: None,
             chunks: HashMap::new(),
-            direction: Direction::Down,
+            keyboards: HashSet::new(),
         }
     }
 
@@ -245,14 +248,11 @@ impl<'a> GameState<'a> {
         fliph: bool,
         flipv: bool,
     ) {
-        let mut uc: UnitCharacter = UnitCharacter::new(w, h, max_frame, fliph, flipv);
         let mut uc_vec = vec![];
-
         for i in 0..max_frame {
             uc_vec.push(Rect::new(x + i as i32 * w as i32, y, w, h));
         }
-        uc.set_animation(uc_vec);
-        self.unit_char.insert(id, Rc::new(RefCell::new(uc)));
+        self.unit_char.set_animation(id, uc_vec, fliph, flipv);
     }
 
     pub fn add_music(&mut self, path: String) {
@@ -305,39 +305,64 @@ impl<'a> GameState<'a> {
 }
 
 impl<'a> States for GameState<'a> {
-    fn process_event(&mut self, event: &sdl2::event::Event) -> StateResult {
+    fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
         self.state_result = match event {
             Event::KeyDown {
                 keycode: Some(Keycode::Up),
                 ..
             } => {
-                self.direction = Direction::Up;
+                self.keyboards.insert(Keycode::Up);
                 StateResult::Default
             }
-
+            Event::KeyUp {
+                keycode: Some(Keycode::Up),
+                ..
+            } => {
+                self.keyboards.remove(&Keycode::Up);
+                StateResult::Default
+            }
             Event::KeyDown {
                 keycode: Some(Keycode::Down),
                 ..
             } => {
-                self.direction = Direction::Down;
+                self.keyboards.insert(Keycode::Down);
+                StateResult::Default
+            }
+            Event::KeyUp {
+                keycode: Some(Keycode::Down),
+                ..
+            } => {
+                self.keyboards.remove(&Keycode::Down);
                 StateResult::Default
             }
             Event::KeyDown {
                 keycode: Some(Keycode::Left),
                 ..
             } => {
-                self.direction = Direction::Left;
+                self.keyboards.insert(Keycode::Left);
                 StateResult::Default
             }
-
+            Event::KeyUp {
+                keycode: Some(Keycode::Left),
+                ..
+            } => {
+                self.keyboards.remove(&Keycode::Left);
+                StateResult::Default
+            }
             Event::KeyDown {
                 keycode: Some(Keycode::Right),
                 ..
             } => {
-                self.direction = Direction::Right;
+                self.keyboards.insert(Keycode::Right);
                 StateResult::Default
             }
-
+            Event::KeyUp {
+                keycode: Some(Keycode::Right),
+                ..
+            } => {
+                self.keyboards.remove(&Keycode::Right);
+                StateResult::Default
+            }
             Event::KeyDown {
                 keycode: Some(Keycode::Escape),
                 ..
@@ -382,10 +407,21 @@ impl<'a> States for GameState<'a> {
     }
 
     fn update(&mut self, dt: f64) -> StateResult {
-        let unit_char_refcell = self.unit_char.get(&self.direction).unwrap();
-        let mut unit_char = unit_char_refcell.borrow_mut();
+        // 키보드 처리
+        if self.keyboards.contains(&Keycode::Up) {
+            self.unit_char.move_forward((0., -1.), dt);
+        }
+        if self.keyboards.contains(&Keycode::Down) {
+            self.unit_char.move_forward((0., 1.), dt);
+        }
+        if self.keyboards.contains(&Keycode::Left) {
+            self.unit_char.move_forward((-1., 0.), dt);
+        }
+        if self.keyboards.contains(&Keycode::Right) {
+            self.unit_char.move_forward((1., 0.), dt);
+        }
 
-        unit_char.update(dt);
+        self.unit_char.update(dt);
 
         StateResult::Default
     }
@@ -403,10 +439,7 @@ impl<'a> States for GameState<'a> {
             .unwrap();
         let texture = texture_refcell.borrow();
 
-        let unit_char_refcell = self.unit_char.get(&self.direction).unwrap();
-        let unit_char = unit_char_refcell.borrow();
-
-        unit_char.render(canvas, &texture);
+        self.unit_char.render(canvas, &texture);
         StateResult::Default
     }
 
@@ -416,6 +449,7 @@ impl<'a> States for GameState<'a> {
         y: i32,
         new_buttons: &HashSet<sdl2::mouse::MouseButton>,
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _dt: f64,
     ) {
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
             let v_x = transform_value(x, REVERSE_WIDTH_RATIO);

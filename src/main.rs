@@ -76,7 +76,7 @@ fn main() -> Result<(), String> {
                         // state 생성도 여기에서 함
                         // 각 state에서는 생성할 state를 돌려줄 수 있음
                         // 전역 state 보관함에서 넣었다 뺐다 해야함
-                        state.process_event(&event);
+                        state.process_event(&event, dt);
                     }
                 }
             }
@@ -96,7 +96,13 @@ fn main() -> Result<(), String> {
 
         canvas.clear();
         if let Some(state) = states.last_mut() {
-            state.process_mouse(mouse_state.x(), mouse_state.y(), &new_buttons, &old_buttons);
+            state.process_mouse(
+                mouse_state.x(),
+                mouse_state.y(),
+                &new_buttons,
+                &old_buttons,
+                dt,
+            );
             state.update(dt);
             state.render(&mut canvas);
         }
@@ -122,7 +128,7 @@ fn main() -> Result<(), String> {
             }
             _ => (),
         }
-        ::std::thread::sleep(Duration::new(0, TIME_SPAN));
+        //::std::thread::sleep(Duration::new(0, 1000));
         now = timer_subsystem.ticks();
     }
 

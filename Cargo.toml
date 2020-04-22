@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 num-traits = "0.2"
+nalgebra = "0.18"
 
 [dependencies.sdl2]
 version="0.33"
