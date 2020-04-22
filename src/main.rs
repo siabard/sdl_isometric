@@ -5,7 +5,6 @@ use sdl_isometric::constant::*;
 use sdl_isometric::states::*;
 use sdl_isometric::*;
 use std::collections::HashSet;
-use std::time::Duration;
 
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init().expect("ERROR on SDL CONTEXT");
@@ -128,7 +127,6 @@ fn main() -> Result<(), String> {
             }
             _ => (),
         }
-        //::std::thread::sleep(Duration::new(0, 1000));
         now = timer_subsystem.ticks();
     }
 

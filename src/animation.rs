@@ -76,10 +76,6 @@ impl UnitCharacter {
     pub fn move_forward(&mut self, direction: (f32, f32), dt: f64) {
         self.velocity.0 += (direction.0 as f64 * self.accelaration as f64 * dt) as f32;
         self.velocity.1 += (direction.1 as f64 * self.accelaration as f64 * dt) as f32;
-        println!(
-            "vx = {}, vy = {}, dt = {}",
-            self.velocity.0, self.velocity.1, dt
-        );
     }
 
     /// 해당 캐릭터를 움직이게한다.
@@ -157,10 +153,6 @@ impl UnitCharacter {
             } else {
                 self.direction = Direction::Up;
             }
-        }
-
-        if self.velocity.0.abs() > 0. || self.velocity.1.abs() > 0. {
-            println!("vx = {}, vy = {}", self.velocity.0, self.velocity.1);
         }
         // x, y 이동 단위 이동속도를 구했다면 x, y에 해당 값을 더한다.
         self.x = self.x + self.velocity.0 * dt as f32;
