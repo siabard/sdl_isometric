@@ -62,34 +62,49 @@ impl Map {
         ];
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas, texture_manager: &TextureManager) {
+    pub fn render(
+        &self,
+        canvas: &mut WindowCanvas,
+        camera: &Rect,
+        texture_manager: &TextureManager,
+    ) {
         let texture_ref = texture_manager.textures.get(&self.map_id).unwrap();
         let texture = texture_ref.borrow();
         for y in 0..MAP_HEIGHT {
             for x in 0..MAP_WIDTH {
-                let idx = (y * MAP_WIDTH + x) as usize;
-                if let Some(map_value) = self.map.get(idx) {
-                    if let Some(map) = self.blocks.get(map_value) {
-                        canvas
-                            .copy_ex(
-                                &texture,
-                                Some(*map),
-                                Some(transform_rect(
-                                    &Rect::new(
-                                        x * self.cell_width as i32,
-                                        y * self.cell_height as i32,
-                                        self.cell_width,
-                                        self.cell_height,
-                                    ),
-                                    WIDTH_RATIO,
-                                    HEIGHT_RATIO,
-                                )),
-                                0.,
-                                Some(Point::new(0, 0)),
-                                false,
-                                false,
-                            )
-                            .unwrap();
+                // 카메라 좌표계에 출력이 가능할 때만 노출
+                let mx = x * self.cell_width as i32;
+                let my = y * self.cell_height as i32;
+
+                if (mx + self.cell_width as i32) >= camera.x
+                    && (mx - self.cell_width as i32) <= (camera.x + camera.width() as i32)
+                    && (my + self.cell_height as i32) >= camera.y
+                    && (my - self.cell_height as i32) <= (camera.y + camera.height() as i32)
+                {
+                    let idx = (y * MAP_WIDTH + x) as usize;
+                    if let Some(map_value) = self.map.get(idx) {
+                        if let Some(map) = self.blocks.get(map_value) {
+                            canvas
+                                .copy_ex(
+                                    &texture,
+                                    Some(*map),
+                                    Some(transform_rect(
+                                        &Rect::new(
+                                            x * self.cell_width as i32 - camera.x,
+                                            y * self.cell_height as i32 - camera.y,
+                                            self.cell_width,
+                                            self.cell_height,
+                                        ),
+                                        WIDTH_RATIO,
+                                        HEIGHT_RATIO,
+                                    )),
+                                    0.,
+                                    Some(Point::new(0, 0)),
+                                    false,
+                                    false,
+                                )
+                                .unwrap();
+                        }
                     }
                 }
             }

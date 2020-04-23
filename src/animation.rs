@@ -12,10 +12,10 @@ use std::collections::HashMap;
 pub struct UnitCharacter {
     hitbox: Option<Rect>,
     animation: HashMap<Direction, (Vec<Rect>, bool, bool)>,
-    x: f32,
-    y: f32,
-    w: u32,
-    h: u32,
+    pub x: f32,
+    pub y: f32,
+    pub w: u32,
+    pub h: u32,
     frame: u32,
     max_frame: u32,
     timer: f64,
@@ -158,6 +158,19 @@ impl UnitCharacter {
         self.x = self.x + self.velocity.0 * dt as f32;
         self.y = self.y + self.velocity.1 * dt as f32;
 
+        // x, y에 대한 Bound Condition
+        if self.x < 0. {
+            self.x = 0.;
+        }
+        if self.x > WORLD_WIDTH as f32 {
+            self.x = WORLD_WIDTH as f32;
+        }
+        if self.y < 0. {
+            self.y = 0.;
+        }
+        if self.y > WORLD_HEIGHT as f32 {
+            self.y = WORLD_HEIGHT as f32;
+        }
         // timer에 dt를 누적해서 span보다 커지면 한 프레임씩 증가한다.
         // 이렇게 하면 1초에 몇프레임 식으로 애니메이션을 조작할 수 있다.
 
@@ -176,7 +189,7 @@ impl UnitCharacter {
     }
 
     /// 해당 캐릭터를 canvas에 노출합니다.
-    pub fn render(&self, canvas: &mut WindowCanvas, texture: &Texture) {
+    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
         let animation = self.animation.get(&self.direction).unwrap();
         let src: Rect = animation.0[self.frame as usize];
 
@@ -186,8 +199,8 @@ impl UnitCharacter {
         // h => h * SCREEN_HEIGHT / VIRTUAL_HEIGHT
 
         let transformed_rect = Rect::new(
-            transform_value(self.x as i32, WIDTH_RATIO),
-            transform_value(self.y as i32, HEIGHT_RATIO),
+            transform_value(self.x as i32 - camera.x, WIDTH_RATIO),
+            transform_value(self.y as i32 - camera.y, HEIGHT_RATIO),
             transform_value(self.w, WIDTH_RATIO),
             transform_value(self.h, HEIGHT_RATIO),
         );

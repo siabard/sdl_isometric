@@ -43,7 +43,7 @@ pub trait States {
     fn update(&mut self, dt: f64) -> StateResult;
 
     /// 화면에 노출시키기
-    fn render(&self, canvas: &mut WindowCanvas) -> StateResult;
+    fn render(&mut self, canvas: &mut WindowCanvas) -> StateResult;
 
     /// main loop에서 States의 다음 상태를 요청할 때
     fn next_result(&mut self) -> StateResult;
@@ -157,7 +157,7 @@ impl<'a> States for InitState<'a> {
         StateResult::Default
     }
 
-    fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
+    fn render(&mut self, canvas: &mut WindowCanvas) -> StateResult {
         // 화면의 모든 GUI요소를 출력하기
         for (_k, button) in self.buttons.iter() {
             button.render(canvas, self.texture_manager.as_ref().unwrap());
@@ -210,6 +210,10 @@ pub struct GameState<'a> {
     state_result: StateResult,
     map: Option<Map>,
     keyboards: HashSet<sdl2::keyboard::Keycode>,
+    cx: i32, // 카메라 X 좌표
+    cy: i32, // 카메라 Y 좌표
+    cw: u32, // 카메라 폭
+    ch: u32, // 카메라 높이
 }
 
 impl<'a> GameState<'a> {
@@ -224,6 +228,10 @@ impl<'a> GameState<'a> {
             music: None,
             chunks: HashMap::new(),
             keyboards: HashSet::new(),
+            cx: 0,
+            cy: 0,
+            cw: VIRTUAL_WIDTH,
+            ch: VIRTUAL_HEIGHT,
         }
     }
 
@@ -425,10 +433,60 @@ impl<'a> States for GameState<'a> {
 
         StateResult::Default
     }
-    fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
+    fn render(&mut self, canvas: &mut WindowCanvas) -> StateResult {
+        // cx, cy 를 기준으로 모든 좌표계를 이동해야한다.
+        // 예를 들어, 현재 world 기준으로 (100,100)인데 (cx,cy)가 (100,100)이라면
+        // 해당 좌표는 100,100만큼 작아져야한다.
+
+        // cx, cy를 구한다.
+        // cx, cy는 추적하는 캐릭터에 맞추어 정해진다.
+        // 여기서는 unit_char이다.
+        // cx + cw 구간 양쪽 10% 공간에 있다면 cx는 왼쪽으로는 10% 여백이 가능한 만큼 좌측으로 이동하고
+        // 우측으로는 10% 여백이 가능한 만큼 우측으로 이동해야한다.
+        // cy + ch 에 대해서도 동일한다.
+
+        let ux = self.unit_char.x as i32;
+        let uy = self.unit_char.y as i32;
+
+        let width_margin = (self.cw as f32 * 0.1) as u32;
+        let height_margin = (self.ch as f32 * 0.1) as u32;
+        let left_limit = self.cx as u32 + width_margin;
+        let right_limit = self.cx as u32 + self.cw - width_margin;
+        let top_limit = self.cy as u32 + height_margin;
+        let bottom_limit = self.cy as u32 + self.ch - height_margin as u32;
+
+        if ux < left_limit as i32 {
+            // cx를 ux 위치가 left_limit인 곳까지 이동한다.
+            self.cx = ux - width_margin as i32;
+            if self.cx < 0 {
+                self.cx = 0;
+            }
+        } else if ux > right_limit as i32 {
+            // cx를 ux 위치가 right_limit인 곳까지 이동한다.
+            self.cx = ux - self.cw as i32 + width_margin as i32;
+            if self.cx as u32 + self.cw > WORLD_WIDTH {
+                self.cx = (WORLD_WIDTH - width_margin) as i32;
+            }
+        }
+
+        if uy < top_limit as i32 {
+            // cx를 ux 위치가 left_limit인 곳까지 이동한다.
+            self.cy = uy - height_margin as i32;
+            if self.cy < 0 {
+                self.cy = 0;
+            }
+        } else if uy > bottom_limit as i32 {
+            // cx를 ux 위치가 right_limit인 곳까지 이동한다.
+            self.cy = uy - self.ch as i32 + height_margin as i32;
+            if self.cy as u32 + self.ch > WORLD_HEIGHT {
+                self.cy = (WORLD_HEIGHT - height_margin) as i32;
+            }
+        }
+
+        let camera_rect = Rect::new(self.cx, self.cy, self.cw, self.ch);
         // map 먼저 출력
         if let Some(map) = &self.map {
-            map.render(canvas, &self.texture_manager);
+            map.render(canvas, &camera_rect, &self.texture_manager);
         }
         // 모든 스프라이트를 WindowCanvas 에 출력..
         // 다 좋은데... x,y 좌표는??
@@ -439,7 +497,7 @@ impl<'a> States for GameState<'a> {
             .unwrap();
         let texture = texture_refcell.borrow();
 
-        self.unit_char.render(canvas, &texture);
+        self.unit_char.render(canvas, &camera_rect, &texture);
         StateResult::Default
     }
 
