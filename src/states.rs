@@ -204,7 +204,8 @@ impl<'a> States for InitState<'a> {
 /// 게임 실행용 State
 pub struct GameState<'a> {
     texture_manager: TextureManager<'a>,
-    unit_char: UnitCharacter,
+    pc: UnitCharacter,
+    enemy: UnitCharacter,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
@@ -219,10 +220,13 @@ pub struct GameState<'a> {
 impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
         let texture_manager = TextureManager::new();
-        let unit_char = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+        let pc = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+
+        let enemy = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
         GameState {
             texture_manager,
-            unit_char,
+            pc,
+            enemy,
             state_result: StateResult::Default,
             map: None,
             music: None,
@@ -260,7 +264,8 @@ impl<'a> GameState<'a> {
         for i in 0..max_frame {
             uc_vec.push(Rect::new(x + i as i32 * w as i32, y, w, h));
         }
-        self.unit_char.set_animation(id, uc_vec, fliph, flipv);
+        self.pc.set_animation(id, uc_vec.clone(), fliph, flipv);
+        self.enemy.set_animation(id, uc_vec, fliph, flipv);
     }
 
     pub fn add_music(&mut self, path: String) {
@@ -291,6 +296,9 @@ impl<'a> GameState<'a> {
         self.add_unit_char(Direction::Up, 64, 0, 16, 16, 2, false, false);
         self.add_unit_char(Direction::Right, 32, 0, 16, 16, 2, false, false);
 
+        self.pc.set_hitbox(2, 0, 12, 16);
+        self.enemy.set_hitbox(2, 0, 12, 16);
+
         // 지도 등록
         self.add_texture(
             texture_creator,
@@ -303,6 +311,10 @@ impl<'a> GameState<'a> {
         map.init_map(1, 16, 0, 16, 16);
         map.init_map(2, 32, 0, 16, 16);
         self.map = Some(map);
+
+        // 적 위치 변경
+        self.enemy.x = 300.0;
+        self.enemy.y = 200.0;
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
@@ -417,22 +429,69 @@ impl<'a> States for GameState<'a> {
     fn update(&mut self, dt: f64) -> StateResult {
         // 키보드 처리
         if self.keyboards.contains(&Keycode::Up) {
-            self.unit_char.move_forward((0., -1.), dt);
+            self.pc.move_forward((0., -1.), dt);
         }
         if self.keyboards.contains(&Keycode::Down) {
-            self.unit_char.move_forward((0., 1.), dt);
+            self.pc.move_forward((0., 1.), dt);
         }
         if self.keyboards.contains(&Keycode::Left) {
-            self.unit_char.move_forward((-1., 0.), dt);
+            self.pc.move_forward((-1., 0.), dt);
         }
         if self.keyboards.contains(&Keycode::Right) {
-            self.unit_char.move_forward((1., 0.), dt);
+            self.pc.move_forward((1., 0.), dt);
         }
 
-        self.unit_char.update(dt);
+        self.pc.update_predict(dt);
+        self.enemy.update_predict(dt);
 
+        // collision detection
+        let directions = detect_collision(
+            self.pc.get_hitbox_predict().as_ref().unwrap(),
+            self.enemy.get_hitbox_predict().as_ref().unwrap(),
+        );
+
+        if directions.contains(&Direction::Down) {
+            // 아래쪽이 닿은 경우
+            // y백터가 0보다 크다면, y 벡터를 0으로 하고, py를 기존 y로 리셋
+            if self.pc.velocity.1 > 0. {
+                self.pc.reset_velocity_y();
+                self.enemy.reset_velocity_y();
+            }
+        }
+
+        if directions.contains(&Direction::Up) {
+            // 위쪽이 닿은 경우
+            // y벡터가 0보다 작으면, y 벡터를 0으로 하고, py를 기존 y로 리셋한다.
+            if self.pc.velocity.1 < 0. {
+                self.pc.reset_velocity_y();
+                self.enemy.reset_velocity_y();
+            }
+        }
+        if directions.contains(&Direction::Left) {
+            // 왼쪽이 닿은 경우
+            // x 벡터가 0보다 작다면,  x 벡터를 0으로 하고, px를 기존 x로 리셋한다.
+            if self.pc.velocity.0 < 0. {
+                self.pc.reset_velocity_x();
+                self.enemy.reset_velocity_x();
+            }
+        }
+
+        if directions.contains(&Direction::Right) {
+            // 오른쪽이 닿은 경우
+            // x 벡터가 0보다 크다면,  x 벡터를 0으로 하고, px를 기존 x로 리셋한다.
+            if self.pc.velocity.0 > 0. {
+                self.pc.reset_velocity_x();
+                self.enemy.reset_velocity_x();
+            }
+        }
+
+        // 실제 움직이게 한다.
+
+        self.pc.update(dt);
+        self.enemy.update(dt);
         StateResult::Default
     }
+
     fn render(&mut self, canvas: &mut WindowCanvas) -> StateResult {
         // cx, cy 를 기준으로 모든 좌표계를 이동해야한다.
         // 예를 들어, 현재 world 기준으로 (100,100)인데 (cx,cy)가 (100,100)이라면
@@ -445,8 +504,8 @@ impl<'a> States for GameState<'a> {
         // 우측으로는 10% 여백이 가능한 만큼 우측으로 이동해야한다.
         // cy + ch 에 대해서도 동일한다.
 
-        let ux = self.unit_char.x as i32;
-        let uy = self.unit_char.y as i32;
+        let ux = self.pc.x as i32;
+        let uy = self.pc.y as i32;
 
         let width_margin = (self.cw as f32 * 0.1) as u32;
         let height_margin = (self.ch as f32 * 0.1) as u32;
@@ -497,7 +556,8 @@ impl<'a> States for GameState<'a> {
             .unwrap();
         let texture = texture_refcell.borrow();
 
-        self.unit_char.render(canvas, &camera_rect, &texture);
+        self.pc.render(canvas, &camera_rect, &texture);
+        self.enemy.render(canvas, &camera_rect, &texture);
         StateResult::Default
     }
 

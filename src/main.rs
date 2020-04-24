@@ -1,5 +1,6 @@
 use sdl2::event::Event;
 use sdl2::image::InitFlag;
+use sdl2::pixels::Color;
 use sdl2::TimerSubsystem;
 use sdl_isometric::constant::*;
 use sdl_isometric::states::*;
@@ -93,6 +94,7 @@ fn main() -> Result<(), String> {
         let new_buttons = &buttons - &prev_buttons;
         let old_buttons = &prev_buttons - &buttons;
 
+        canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         if let Some(state) = states.last_mut() {
             state.process_mouse(

@@ -2,9 +2,10 @@ use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::int::PrimInt;
 
 use sdl2::rect::Rect;
+use std::collections::HashSet;
 
 /// 방향에 대한 enum
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Direction {
     Left = 0,
     Right = 1,
@@ -49,11 +50,30 @@ pub fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
 }
 
 /// collision detection
-pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
-    p1.x < p2.x + p2.width() as i32
+pub fn detect_collision(p1: &Rect, p2: &Rect) -> HashSet<Direction> {
+    let mut directions = HashSet::new();
+    if p1.x < p2.x + p2.width() as i32
         && p1.x + p1.width() as i32 > p2.x
         && p1.y < p2.y + p2.height() as i32
         && p1.y + p1.height() as i32 > p2.y
+    {
+        // p1 을 기준으로 p1 의 어느 쪽이 p2와 충돌했는지 검사
+        if p1.x < p2.x + p2.width() as i32 {
+            directions.insert(Direction::Left);
+        }
+        if p1.x + p1.width() as i32 > p2.x {
+            directions.insert(Direction::Right);
+        }
+        if p1.y < p2.y + p2.height() as i32 {
+            directions.insert(Direction::Up);
+        }
+
+        if p1.y + p1.height() as i32 > p2.y {
+            directions.insert(Direction::Down);
+        }
+    }
+
+    directions
 }
 
 pub mod animation;
