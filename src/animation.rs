@@ -1,11 +1,13 @@
 use crate::constant::*;
 use crate::*;
 
+use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
 use std::collections::HashMap;
+use std::convert::TryInto;
 /// Animation 을 수행하는 내역
 /// 개별 캐릭터는 하나의 UnitCharacter 이다.
 #[derive(Clone, PartialEq)]
@@ -27,6 +29,7 @@ pub struct UnitCharacter {
     pub velocity: (f32, f32), // 속도
     max_velocity: f32,        // 이론상 최대속도
     pub direction: Direction, // 바라보는 방향
+    pub deg: i32,             // 바라보는 각도
 }
 
 impl UnitCharacter {
@@ -57,6 +60,7 @@ impl UnitCharacter {
             velocity: (0., 0.),
             max_velocity,
             direction: Direction::Left,
+            deg: 0,
         }
     }
 
@@ -247,6 +251,21 @@ impl UnitCharacter {
         }
     }
 
+    /// x,y좌표에 맞게 바라보는 각도를 맞춘다.
+    pub fn set_deg(&mut self, (x, y): (f32, f32)) {
+        let d_x = x - (self.x + (self.w / 2) as f32);
+        let d_y = (self.y + (self.h / 2) as f32) - y;
+
+        let distance = (d_x * d_x + d_y * d_y).sqrt();
+        let ratio = d_x / distance;
+        let mut deg = ratio.acos() * 180. / std::f32::consts::PI;
+
+        if d_y > 0. {
+            deg = -deg;
+        }
+        self.deg = deg as i32;
+    }
+
     /// 해당 캐릭터를 canvas에 노출합니다.
     pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
         let animation = self.animation.get(&self.direction).unwrap();
@@ -282,6 +301,25 @@ impl UnitCharacter {
             transform_value(self.get_hitbox().unwrap().width(), WIDTH_RATIO),
             transform_value(self.get_hitbox().unwrap().height(), HEIGHT_RATIO),
         );
+
+        // 공격 가능한 영역 그리기
+        let center_x: i16 = (self.x as i32 - camera.x + (self.w as i32 / 2))
+            .try_into()
+            .unwrap();
+        let center_y: i16 = (self.y as i32 - camera.y + (self.h as i32 / 2))
+            .try_into()
+            .unwrap();
+
+        canvas
+            .filled_pie(
+                transform_value(center_x, WIDTH_RATIO),
+                transform_value(center_y, HEIGHT_RATIO),
+                32,
+                (self.deg - 30).try_into().unwrap(),
+                (self.deg + 30).try_into().unwrap(),
+                Color::RGBA(255, 255, 255, 50),
+            )
+            .unwrap();
 
         canvas.set_draw_color(Color::RGBA(0, 255, 0, 255));
         canvas.draw_rect(hitbox_transformed_rect).unwrap();

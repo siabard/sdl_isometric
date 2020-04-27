@@ -590,6 +590,7 @@ impl<'a> States for GameState<'a> {
             }
         }
 
+        self.pc.set_deg((v_x as f32, v_y as f32));
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
