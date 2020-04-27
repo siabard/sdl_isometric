@@ -569,10 +569,28 @@ impl<'a> States for GameState<'a> {
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
         _dt: f64,
     ) {
-        if !new_buttons.is_empty() || !old_buttons.is_empty() {
-            let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
-            let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
+        let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
+        let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
 
+        // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
+        let diff_x = (self.pc.x - v_x as f32).abs();
+        let diff_y = (self.pc.y - v_y as f32).abs();
+
+        if diff_x > diff_y {
+            if self.pc.x > v_x as f32 {
+                self.pc.direction = Direction::Left;
+            } else if self.pc.x < v_x as f32 {
+                self.pc.direction = Direction::Right;
+            }
+        } else {
+            if self.pc.y > v_y as f32 {
+                self.pc.direction = Direction::Up;
+            } else if self.pc.y < v_y as f32 {
+                self.pc.direction = Direction::Down;
+            }
+        }
+
+        if !new_buttons.is_empty() || !old_buttons.is_empty() {
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
                 v_x, v_y, new_buttons, old_buttons

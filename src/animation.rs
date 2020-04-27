@@ -26,7 +26,7 @@ pub struct UnitCharacter {
     accelaration: f32,        // 가속정도
     pub velocity: (f32, f32), // 속도
     max_velocity: f32,        // 이론상 최대속도
-    direction: Direction,     // 바라보는 방향
+    pub direction: Direction, // 바라보는 방향
 }
 
 impl UnitCharacter {
@@ -214,6 +214,7 @@ impl UnitCharacter {
         self.y = self.py;
 
         // 캐릭터의 방향을 이동 속도에 맞추어 정한다.
+        /*
         if self.velocity.0.abs() > self.velocity.1.abs() {
             if self.velocity.0 > 0. {
                 self.direction = Direction::Right;
@@ -227,6 +228,7 @@ impl UnitCharacter {
                 self.direction = Direction::Up;
             }
         }
+        */
 
         // timer에 dt를 누적해서 span보다 커지면 한 프레임씩 증가한다.
         // 이렇게 하면 1초에 몇프레임 식으로 애니메이션을 조작할 수 있다.
