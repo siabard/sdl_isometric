@@ -10,7 +10,7 @@ edition = "2018"
 num-traits = "0.2"
 
 [dependencies.sdl2]
-version="0.33"
+version="0.34"
 features = ["ttf", "image", "gfx", "mixer"]
 
 [dependencies.uuid]

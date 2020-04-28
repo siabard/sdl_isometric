@@ -326,101 +326,44 @@ impl<'a> GameState<'a> {
 
 impl<'a> States for GameState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
-        self.state_result = match event {
+        match event {
             Event::KeyDown {
-                keycode: Some(Keycode::Up),
-                ..
+                keycode: Some(k), ..
             } => {
-                self.keyboards.insert(Keycode::Up);
-                StateResult::Default
-            }
-            Event::KeyUp {
-                keycode: Some(Keycode::Up),
-                ..
-            } => {
-                self.keyboards.remove(&Keycode::Up);
-                StateResult::Default
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Down),
-                ..
-            } => {
-                self.keyboards.insert(Keycode::Down);
-                StateResult::Default
-            }
-            Event::KeyUp {
-                keycode: Some(Keycode::Down),
-                ..
-            } => {
-                self.keyboards.remove(&Keycode::Down);
-                StateResult::Default
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Left),
-                ..
-            } => {
-                self.keyboards.insert(Keycode::Left);
-                StateResult::Default
-            }
-            Event::KeyUp {
-                keycode: Some(Keycode::Left),
-                ..
-            } => {
-                self.keyboards.remove(&Keycode::Left);
-                StateResult::Default
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Right),
-                ..
-            } => {
-                self.keyboards.insert(Keycode::Right);
-                StateResult::Default
-            }
-            Event::KeyUp {
-                keycode: Some(Keycode::Right),
-                ..
-            } => {
-                self.keyboards.remove(&Keycode::Right);
-                StateResult::Default
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Escape),
-                ..
-            } => StateResult::Pop,
-            Event::KeyDown {
-                keycode: Some(Keycode::Num1),
-                ..
-            } => {
-                let chunk = self.chunks.get(&"high".to_owned()).unwrap().borrow();
-                sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
-                return StateResult::Default;
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Num2),
-                ..
-            } => {
-                let chunk = self.chunks.get(&"low".to_owned()).unwrap().borrow();
-                sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
-                return StateResult::Default;
-            }
-            Event::KeyDown {
-                keycode: Some(Keycode::Num0),
-                ..
-            } => {
-                let music = self.music.as_ref().unwrap();
+                self.keyboards.insert(*k);
+                if *k == Keycode::Num1 {
+                    let chunk = self.chunks.get(&"high".to_owned()).unwrap().borrow();
+                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                } else if *k == Keycode::Num2 {
+                    let chunk = self.chunks.get(&"low".to_owned()).unwrap().borrow();
+                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                } else if *k == Keycode::Num0 {
+                    let music = self.music.as_ref().unwrap();
 
-                if sdl2::mixer::Music::is_playing() == false {
-                    music.play(-1).unwrap();
-                } else {
-                    if sdl2::mixer::Music::is_paused() {
-                        sdl2::mixer::Music::resume();
+                    if sdl2::mixer::Music::is_playing() == false {
+                        music.play(-1).unwrap();
                     } else {
-                        sdl2::mixer::Music::pause();
+                        if sdl2::mixer::Music::is_paused() {
+                            sdl2::mixer::Music::resume();
+                        } else {
+                            sdl2::mixer::Music::pause();
+                        }
                     }
                 }
-                return StateResult::Default;
+
+                if *k == Keycode::Escape {
+                    self.state_result = StateResult::Pop;
+                } else {
+                    self.state_result = StateResult::Default;
+                }
             }
-            _ => StateResult::Default,
+            Event::KeyUp {
+                keycode: Some(k), ..
+            } => {
+                self.keyboards.remove(&k);
+                self.state_result = StateResult::Default;
+            }
+            _ => self.state_result = StateResult::Default,
         };
 
         StateResult::Default
@@ -428,16 +371,16 @@ impl<'a> States for GameState<'a> {
 
     fn update(&mut self, dt: f64) -> StateResult {
         // 키보드 처리
-        if self.keyboards.contains(&Keycode::Up) {
+        if self.keyboards.contains(&Keycode::Up) || self.keyboards.contains(&Keycode::W) {
             self.pc.move_forward((0., -1.), dt);
         }
-        if self.keyboards.contains(&Keycode::Down) {
+        if self.keyboards.contains(&Keycode::Down) || self.keyboards.contains(&Keycode::S) {
             self.pc.move_forward((0., 1.), dt);
         }
-        if self.keyboards.contains(&Keycode::Left) {
+        if self.keyboards.contains(&Keycode::Left) || self.keyboards.contains(&Keycode::A) {
             self.pc.move_forward((-1., 0.), dt);
         }
-        if self.keyboards.contains(&Keycode::Right) {
+        if self.keyboards.contains(&Keycode::Right) || self.keyboards.contains(&Keycode::D) {
             self.pc.move_forward((1., 0.), dt);
         }
 

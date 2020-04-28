@@ -263,6 +263,7 @@ impl UnitCharacter {
         if d_y > 0. {
             deg = -deg;
         }
+
         self.deg = deg as i32;
     }
 
