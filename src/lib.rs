@@ -7,10 +7,14 @@ use std::collections::HashSet;
 /// 방향에 대한 enum
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Direction {
-    Left = 0,
-    Right = 1,
-    Up = 2,
-    Down = 3,
+    Left,
+    Right,
+    Up,
+    Down,
+    IdleLeft,
+    IdleRight,
+    IdleUp,
+    IdleDown,
 }
 
 /// 캐릭터 분류

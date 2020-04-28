@@ -296,6 +296,11 @@ impl<'a> GameState<'a> {
         self.add_unit_char(Direction::Up, 64, 0, 16, 16, 2, false, false);
         self.add_unit_char(Direction::Right, 32, 0, 16, 16, 2, false, false);
 
+        self.add_unit_char(Direction::IdleDown, 0, 0, 16, 16, 1, false, false);
+        self.add_unit_char(Direction::IdleLeft, 32, 0, 16, 16, 1, true, false);
+        self.add_unit_char(Direction::IdleUp, 64, 0, 16, 16, 1, false, false);
+        self.add_unit_char(Direction::IdleRight, 32, 0, 16, 16, 1, false, false);
+
         self.pc.set_hitbox(2, 0, 12, 16);
         self.enemy.set_hitbox(2, 0, 12, 16);
 
@@ -522,14 +527,18 @@ impl<'a> States for GameState<'a> {
         if diff_x > diff_y {
             if self.pc.x > v_x as f32 {
                 self.pc.direction = Direction::Left;
+                self.pc.facing = (-1, 0);
             } else if self.pc.x < v_x as f32 {
                 self.pc.direction = Direction::Right;
+                self.pc.facing = (1, 0);
             }
         } else {
             if self.pc.y > v_y as f32 {
                 self.pc.direction = Direction::Up;
+                self.pc.facing = (0, -1);
             } else if self.pc.y < v_y as f32 {
                 self.pc.direction = Direction::Down;
+                self.pc.facing = (0, 1);
             }
         }
 

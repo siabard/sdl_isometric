@@ -27,8 +27,9 @@ pub struct UnitCharacter {
     decelaration: f32,        // 감속정도
     accelaration: f32,        // 가속정도
     pub velocity: (f32, f32), // 속도
+    pub facing: (i32, i32),   // 방향성
     max_velocity: f32,        // 이론상 최대속도
-    pub direction: Direction, // 바라보는 방향
+    pub direction: Direction, // 방향에 따른 애니메이션 종류
     pub deg: i32,             // 바라보는 각도
 }
 
@@ -58,6 +59,7 @@ impl UnitCharacter {
             decelaration,
             accelaration,
             velocity: (0., 0.),
+            facing: (0, 0),
             max_velocity,
             direction: Direction::Left,
             deg: 0,
