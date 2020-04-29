@@ -31,6 +31,8 @@ pub struct UnitCharacter {
     max_velocity: f32,        // 이론상 최대속도
     pub direction: Direction, // 방향에 따른 애니메이션 종류
     pub deg: i32,             // 바라보는 각도
+    attack_timer: f64,        // 공격 타이머
+    attacking: bool,          // 공격 시도 진행
 }
 
 impl UnitCharacter {
@@ -63,6 +65,8 @@ impl UnitCharacter {
             max_velocity,
             direction: Direction::Left,
             deg: 0,
+            attack_timer: 0.,
+            attacking: false,
         }
     }
 
@@ -112,6 +116,25 @@ impl UnitCharacter {
     pub fn move_forward(&mut self, direction: (f32, f32), dt: f64) {
         self.velocity.0 += (direction.0 as f64 * self.accelaration as f64 * dt) as f32;
         self.velocity.1 += (direction.1 as f64 * self.accelaration as f64 * dt) as f32;
+    }
+
+    /// 공격시도
+    pub fn attack(&mut self) {
+        if self.attacking == false {
+            self.attacking = true;
+            self.attack_timer = 0.;
+        }
+    }
+
+    /// 공격 애니메이션 세팅
+    pub fn update_attack(&mut self, dt: f64) {
+        if self.attacking == true {
+            self.attack_timer = self.attack_timer + dt;
+            if self.attack_timer > 2. {
+                self.attacking = false;
+                self.attack_timer = 0.;
+            }
+        }
     }
 
     /// 해당 캐릭터의 이동 위치를 예상한다.
@@ -234,8 +257,12 @@ impl UnitCharacter {
                 self.direction = Direction::Up;
             }
         }
-        */
+         */
+        self.update_attack(dt);
+        self.update_animation(dt);
+    }
 
+    fn update_animation(&mut self, dt: f64) {
         // timer에 dt를 누적해서 span보다 커지면 한 프레임씩 증가한다.
         // 이렇게 하면 1초에 몇프레임 식으로 애니메이션을 조작할 수 있다.
 
@@ -320,7 +347,16 @@ impl UnitCharacter {
                 32,
                 (self.deg - 30).try_into().unwrap(),
                 (self.deg + 30).try_into().unwrap(),
-                Color::RGBA(255, 255, 255, 50),
+                if self.attacking {
+                    Color::RGBA(
+                        255,
+                        255,
+                        255,
+                        (((2.0 - self.attack_timer) / 2.0) * 255.) as u8,
+                    )
+                } else {
+                    Color::RGBA(255, 255, 255, 50)
+                },
             )
             .unwrap();
 
