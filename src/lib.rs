@@ -4,6 +4,9 @@ use num_traits::int::PrimInt;
 use sdl2::rect::Rect;
 use std::collections::HashSet;
 
+///
+type Vector2<V> = (V, V);
+
 /// 방향에 대한 enum
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Direction {
@@ -15,6 +18,7 @@ pub enum Direction {
     IdleRight,
     IdleUp,
     IdleDown,
+    Stop,
 }
 
 /// 캐릭터 분류
@@ -82,7 +86,11 @@ pub fn detect_collision(p1: &Rect, p2: &Rect) -> HashSet<Direction> {
 
 pub mod animation;
 pub mod constant;
+pub mod entity;
 pub mod gui;
 pub mod map;
 pub mod states;
 pub mod texture_manager;
+
+pub use states::game_state::*;
+pub use states::init_state::*;
