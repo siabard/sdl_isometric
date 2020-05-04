@@ -96,7 +96,7 @@ impl<'a> GameState<'a> {
             uc_vec.clone(),
             0,
             max_frame as usize,
-            2.,
+            0.25,
             fliph,
             flipv,
         );
@@ -140,7 +140,7 @@ impl<'a> GameState<'a> {
 
         self.add_unit_char(Direction::Stop, 0, 0, 16, 16, 1, false, false);
 
-        self.pc2.set_hitbox(2., 0., 12, 16);
+        self.pc2.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
         self.pc.set_hitbox(2, 0, 12, 16);
         self.enemy.set_hitbox(2, 0, 12, 16);
 
@@ -180,8 +180,8 @@ impl<'a> GameState<'a> {
         // 우측으로는 10% 여백이 가능한 만큼 우측으로 이동해야한다.
         // cy + ch 에 대해서도 동일한다.
 
-        let ux = self.pc.x as i32;
-        let uy = self.pc.y as i32;
+        let ux = self.pc2.movement.as_ref().unwrap().x as i32;
+        let uy = self.pc2.movement.as_ref().unwrap().y as i32;
 
         let width_margin = (self.cw as f32 * 0.1) as u32;
         let height_margin = (self.ch as f32 * 0.1) as u32;
@@ -268,7 +268,7 @@ impl<'a> States for GameState<'a> {
     fn update(&mut self, dt: f64) -> StateResult {
         // 키보드 처리
         if self.keyboards.contains(&Keycode::Up) || self.keyboards.contains(&Keycode::W) {
-            self.pc.move_forward((0., -1.), dt);
+            //self.pc.move_forward((0., -1.), dt);
             self.pc2
                 .movement
                 .as_mut()
@@ -276,7 +276,7 @@ impl<'a> States for GameState<'a> {
                 .move_forward((0., -1.), dt);
         }
         if self.keyboards.contains(&Keycode::Down) || self.keyboards.contains(&Keycode::S) {
-            self.pc.move_forward((0., 1.), dt);
+            //self.pc.move_forward((0., 1.), dt);
             self.pc2
                 .movement
                 .as_mut()
@@ -284,7 +284,7 @@ impl<'a> States for GameState<'a> {
                 .move_forward((0., 1.), dt);
         }
         if self.keyboards.contains(&Keycode::Left) || self.keyboards.contains(&Keycode::A) {
-            self.pc.move_forward((-1., 0.), dt);
+            //self.pc.move_forward((-1., 0.), dt);
             self.pc2
                 .movement
                 .as_mut()
@@ -292,7 +292,7 @@ impl<'a> States for GameState<'a> {
                 .move_forward((-1., 0.), dt);
         }
         if self.keyboards.contains(&Keycode::Right) || self.keyboards.contains(&Keycode::D) {
-            self.pc.move_forward((1., 0.), dt);
+            //self.pc.move_forward((1., 0.), dt);
             self.pc2
                 .movement
                 .as_mut()
@@ -300,50 +300,53 @@ impl<'a> States for GameState<'a> {
                 .move_forward((1., 0.), dt);
         }
 
+        let old_hitbox = self.pc2.hitbox.as_ref().unwrap().get_rect();
+
         self.pc2.update_predict(dt);
-        self.pc.update_predict(dt);
+        //self.pc.update_predict(dt);
         self.enemy.update_predict(dt);
 
-        // collision detection
+        // collision detection for predict
         let directions = detect_collision(
-            self.pc.get_hitbox_predict().as_ref().unwrap(),
+            &self.pc2.hitbox.as_ref().unwrap().get_rect(),
             self.enemy.get_hitbox_predict().as_ref().unwrap(),
         );
 
-        if directions.contains(&Direction::Down) {
-            // 아래쪽이 닿은 경우
-            // y백터가 0보다 크다면, y 벡터를 0으로 하고, py를 기존 y로 리셋
-            if self.pc.velocity.1 > 0. {
-                self.pc.reset_velocity_y();
+        let predict_y = self.pc2.get_predict_y(dt) + self.pc2.hitbox.as_ref().unwrap().hy;
+        let predict_x = self.pc2.get_predict_x(dt) + self.pc2.hitbox.as_ref().unwrap().hx;
+
+        let predict_hitbox_y_only = Rect::new(
+            old_hitbox.x,
+            predict_y as i32,
+            old_hitbox.width(),
+            old_hitbox.height(),
+        );
+        let predict_hitbox_x_only = Rect::new(
+            predict_x as i32,
+            old_hitbox.y,
+            old_hitbox.width(),
+            old_hitbox.height(),
+        );
+
+        let directions_y_only = detect_collision(
+            &predict_hitbox_y_only,
+            self.enemy.get_hitbox_predict().as_ref().unwrap(),
+        );
+
+        let directions_x_only = detect_collision(
+            &predict_hitbox_x_only,
+            self.enemy.get_hitbox_predict().as_ref().unwrap(),
+        );
+
+        if directions {
+            if directions_y_only {
+                //self.pc.reset_velocity_y();
                 self.pc2.movement.as_mut().unwrap().reset_velocity_y();
                 self.enemy.reset_velocity_y();
             }
-        }
 
-        if directions.contains(&Direction::Up) {
-            // 위쪽이 닿은 경우
-            // y벡터가 0보다 작으면, y 벡터를 0으로 하고, py를 기존 y로 리셋한다.
-            if self.pc.velocity.1 < 0. {
-                self.pc.reset_velocity_y();
-                self.pc2.movement.as_mut().unwrap().reset_velocity_y();
-                self.enemy.reset_velocity_y();
-            }
-        }
-        if directions.contains(&Direction::Left) {
-            // 왼쪽이 닿은 경우
-            // x 벡터가 0보다 작다면,  x 벡터를 0으로 하고, px를 기존 x로 리셋한다.
-            if self.pc.velocity.0 < 0. {
-                self.pc.reset_velocity_x();
-                self.pc2.movement.as_mut().unwrap().reset_velocity_x();
-                self.enemy.reset_velocity_x();
-            }
-        }
-
-        if directions.contains(&Direction::Right) {
-            // 오른쪽이 닿은 경우
-            // x 벡터가 0보다 크다면,  x 벡터를 0으로 하고, px를 기존 x로 리셋한다.
-            if self.pc.velocity.0 > 0. {
-                self.pc.reset_velocity_x();
+            if directions_x_only {
+                //self.pc.reset_velocity_x();
                 self.pc2.movement.as_mut().unwrap().reset_velocity_x();
                 self.enemy.reset_velocity_x();
             }
@@ -351,7 +354,7 @@ impl<'a> States for GameState<'a> {
 
         // 실제 움직이게 한다.
 
-        self.pc.update(dt);
+        //self.pc.update(dt);
         self.pc2.update(dt);
         self.enemy.update(dt);
 
@@ -392,24 +395,28 @@ impl<'a> States for GameState<'a> {
         let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
 
         // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
-        let diff_x = (self.pc.x - v_x as f32).abs();
-        let diff_y = (self.pc.y - v_y as f32).abs();
+        let diff_x = (self.pc2.movement.as_ref().unwrap().x - v_x as f64).abs();
+        let diff_y = (self.pc2.movement.as_ref().unwrap().y - v_y as f64).abs();
 
         if diff_x > diff_y {
-            if self.pc.x > v_x as f32 {
-                self.pc.direction = Direction::Left;
-                self.pc.facing = (-1, 0);
-            } else if self.pc.x < v_x as f32 {
-                self.pc.direction = Direction::Right;
-                self.pc.facing = (1, 0);
+            if self.pc2.movement.as_ref().unwrap().x > v_x as f64 {
+                //self.pc.direction = Direction::Left;
+                //self.pc.facing = (-1, 0);
+                self.pc2.movement.as_mut().unwrap().set_facing((-1, 0));
+            } else if self.pc2.movement.as_ref().unwrap().x < v_x as f64 {
+                //self.pc.direction = Direction::Right;
+                //self.pc.facing = (1, 0);
+                self.pc2.movement.as_mut().unwrap().set_facing((1, 0));
             }
         } else {
-            if self.pc.y > v_y as f32 {
-                self.pc.direction = Direction::Up;
-                self.pc.facing = (0, -1);
-            } else if self.pc.y < v_y as f32 {
-                self.pc.direction = Direction::Down;
-                self.pc.facing = (0, 1);
+            if self.pc2.movement.as_ref().unwrap().y > v_y as f64 {
+                //self.pc.direction = Direction::Up;
+                //self.pc.facing = (0, -1);
+                self.pc2.movement.as_mut().unwrap().set_facing((0, -1));
+            } else if self.pc2.movement.as_ref().unwrap().y < v_y as f64 {
+                //self.pc.direction = Direction::Down;
+                //self.pc.facing = (0, 1);
+                self.pc2.movement.as_mut().unwrap().set_facing((0, 1));
             }
         }
 

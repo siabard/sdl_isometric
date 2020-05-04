@@ -1,11 +1,11 @@
 use crate::constant::*;
 use crate::*;
 
-use std::collections::HashMap;
-use std::collections::HashSet;
-
+use sdl2::pixels::Color;
 use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
+use std::collections::HashMap;
+use std::collections::HashSet;
 
 pub fn facing_to_direction(facing: Vector2<i32>) -> Direction {
     if facing.0 > 0 {
@@ -42,8 +42,8 @@ impl Entity {
         }
     }
 
-    pub fn set_hitbox(&mut self, x: f64, y: f64, w: u32, h: u32) {
-        self.hitbox = Some(HitboxComponent::new(x, y, w, h));
+    pub fn set_hitbox(&mut self, x: f64, y: f64, hx: f64, hy: f64, w: u32, h: u32) {
+        self.hitbox = Some(HitboxComponent::new(x, y, hx, hy, w, h));
     }
 
     pub fn set_movement(
@@ -67,12 +67,20 @@ impl Entity {
         ));
     }
 
+    pub fn get_predict_y(&self, dt: f64) -> f64 {
+        self.movement.unwrap().get_predict_y(dt)
+    }
+
+    pub fn get_predict_x(&self, dt: f64) -> f64 {
+        self.movement.unwrap().get_predict_x(dt)
+    }
+
     pub fn update_predict(&mut self, dt: f64) {
         let movement = self.movement.as_mut().unwrap();
         let hitbox = self.hitbox.as_mut().unwrap();
 
         movement.update_predict(dt);
-        hitbox.update(dt, movement.x, movement.y);
+        hitbox.update(dt, movement.px, movement.py);
     }
 
     pub fn update(&mut self, dt: f64) {
@@ -96,22 +104,27 @@ impl Entity {
         let movement = self.movement.as_ref().unwrap();
         let direction = facing_to_direction(movement.facing);
         let animation = self.animation.get(&direction).unwrap();
+        let hitbox = self.hitbox.as_ref().unwrap();
 
         animation.render(canvas, camera, texture);
+        hitbox.render(canvas, camera);
     }
 }
 
 /// 충돌 좌표를 가지고 있는 부분
+#[derive(Clone, Copy)]
 pub struct HitboxComponent {
-    x: f64,
-    y: f64,
-    w: u32,
-    h: u32,
+    pub x: f64,
+    pub y: f64,
+    pub hx: f64,
+    pub hy: f64,
+    pub w: u32,
+    pub h: u32,
 }
 
 impl HitboxComponent {
-    pub fn new(x: f64, y: f64, w: u32, h: u32) -> HitboxComponent {
-        HitboxComponent { x, y, w, h }
+    pub fn new(x: f64, y: f64, hx: f64, hy: f64, w: u32, h: u32) -> HitboxComponent {
+        HitboxComponent { x, y, hx, hy, w, h }
     }
 
     pub fn update(&mut self, _dt: f64, x: f64, y: f64) {
@@ -119,23 +132,42 @@ impl HitboxComponent {
         self.y = y;
     }
 
-    pub fn get_rect(&self) -> Rect {
-        Rect::new(self.x as i32, self.y as i32, self.w, self.h)
+    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect) {
+        // hitbox 그리기
+        let hitbox_transformed_rect = Rect::new(
+            transform_value((self.x + self.hx) as i32 - camera.x, WIDTH_RATIO),
+            transform_value((self.y + self.hy) as i32 - camera.y, HEIGHT_RATIO),
+            transform_value(self.w, WIDTH_RATIO),
+            transform_value(self.h, HEIGHT_RATIO),
+        );
+
+        canvas.set_draw_color(Color::RGBA(0, 255, 0, 255));
+        canvas.draw_rect(hitbox_transformed_rect).unwrap();
     }
 
-    pub fn is_collide(&mut self, hitbox: &HitboxComponent) -> HashSet<Direction> {
+    pub fn get_rect(&self) -> Rect {
+        Rect::new(
+            (self.x + self.hx) as i32,
+            (self.y + self.hy) as i32,
+            self.w,
+            self.h,
+        )
+    }
+
+    pub fn is_collide(&mut self, hitbox: &HitboxComponent) -> bool {
         detect_collision(&self.get_rect(), &hitbox.get_rect())
     }
 }
 
 /// 이동진행을 위한 부분
+#[derive(Copy, Clone)]
 pub struct MovementComponent {
     pub x: f64,
     pub y: f64,
-    px: f64,
-    py: f64,
+    pub px: f64,
+    pub py: f64,
     pub facing: Vector2<i32>,
-    velocity: Vector2<f64>,
+    pub velocity: Vector2<f64>,
     max_velocity: f64,
     accelaration: f64,
     decelaration: f64,
@@ -164,7 +196,7 @@ impl MovementComponent {
         }
     }
 
-    pub fn update_predict(&mut self, dt: f64) {
+    pub fn update_velocity(&mut self, dt: f64) {
         // dt는 1000 밀리초(1초) 기준으로 한 프레임의 크기이다.
         // 해당 캐릭터는 dt 만큼 감속된 값으로 이동하게된다.
         // 이동 속도 벡터와 현재 속도를 비교하여 최대 이동폭을 구한다.
@@ -224,6 +256,22 @@ impl MovementComponent {
                 self.velocity.1 = 0.
             }
         }
+    }
+
+    pub fn get_predict_y(&self, dt: f64) -> f64 {
+        // 현재 속도상의 다음 y 위치를 구한다.
+        let predict_y = self.y + self.velocity.1 * dt;
+        predict_y.min(WORLD_HEIGHT as f64).max(0.0)
+    }
+
+    pub fn get_predict_x(&self, dt: f64) -> f64 {
+        // 현재 속도상의 다음 x 위치를 구한다.
+        let predict_x = self.x + self.velocity.0 * dt;
+        predict_x.min(WORLD_WIDTH as f64).max(0.0)
+    }
+
+    pub fn update_predict(&mut self, dt: f64) {
+        self.update_velocity(dt);
 
         self.px = self.x;
         self.py = self.y;
@@ -233,18 +281,8 @@ impl MovementComponent {
         self.py += self.velocity.1 * dt;
 
         // x, y에 대한 Bound Condition
-        if self.px < 0. {
-            self.px = 0.;
-        }
-        if self.px > WORLD_WIDTH as f64 {
-            self.px = WORLD_WIDTH as f64;
-        }
-        if self.py < 0. {
-            self.py = 0.;
-        }
-        if self.py > WORLD_HEIGHT as f64 {
-            self.py = WORLD_HEIGHT as f64;
-        }
+        self.px = (self.px).min(WORLD_WIDTH as f64).max(0.0);
+        self.py = (self.py).min(WORLD_HEIGHT as f64).max(0.0);
     }
 
     /// 해당 캐릭터의 x 속도를 0으로 리셋한다.
@@ -273,6 +311,11 @@ impl MovementComponent {
 
         self.x = self.px;
         self.y = self.py;
+    }
+
+    /// 방향 벡터를 설정한다.
+    pub fn set_facing(&mut self, facing: Vector2<i32>) {
+        self.facing = facing;
     }
 }
 
