@@ -587,7 +587,7 @@ impl<'a> States for GameState<'a> {
                             .movement
                             .as_mut()
                             .unwrap()
-                            .reset_velocity_y();
+                            .reset_velocity_x();
                         enemy
                             .borrow_mut()
                             .movement
@@ -663,8 +663,8 @@ impl<'a> States for GameState<'a> {
         old_buttons: &HashSet<sdl2::mouse::MouseButton>,
         _dt: f64,
     ) {
-        let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
-        let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
+        let v_x = transform_value(x, REVERSE_WIDTH_RATIO) + self.cx;
+        let v_y = transform_value(y, REVERSE_HEIGHT_RATIO) + self.cy;
 
         let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
