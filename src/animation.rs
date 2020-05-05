@@ -52,10 +52,10 @@ impl UnitCharacter {
             y: 0.,
             px: 0.,
             py: 0.,
-            w: w,
-            h: h,
+            w,
+            h,
             frame: 0,
-            max_frame: max_frame,
+            max_frame,
             timer: 0.0f64,
             span: 1.0 / 4.0, // 0.25초마당 한 프레임, 즉 초당 4 프레임을 움직인다.
             decelaration,
@@ -120,7 +120,7 @@ impl UnitCharacter {
 
     /// 공격시도
     pub fn attack(&mut self) {
-        if self.attacking == false {
+        if !self.attacking {
             self.attacking = true;
             self.attack_timer = 0.;
         }
@@ -128,8 +128,8 @@ impl UnitCharacter {
 
     /// 공격 애니메이션 세팅
     pub fn update_attack(&mut self, dt: f64) {
-        if self.attacking == true {
-            self.attack_timer = self.attack_timer + dt;
+        if self.attacking {
+            self.attack_timer += dt;
             if self.attack_timer > 2. {
                 self.attacking = false;
                 self.attack_timer = 0.;
@@ -203,8 +203,8 @@ impl UnitCharacter {
         self.py = self.y;
 
         // x, y 이동 단위 이동속도를 구했다면 px, py에 해당 값을 더한다.
-        self.px = self.px + self.velocity.0 * dt as f32;
-        self.py = self.py + self.velocity.1 * dt as f32;
+        self.px += self.velocity.0 * dt as f32;
+        self.py += self.velocity.1 * dt as f32;
 
         // x, y에 대한 Bound Condition
         if self.px < 0. {
@@ -271,7 +271,7 @@ impl UnitCharacter {
         if self.timer > self.span {
             // 이동 속도가 있어야 프레임을 증가시킨다.
             if self.velocity.0.abs() > 0. || self.velocity.1.abs() > 0. {
-                self.frame = self.frame + 1;
+                self.frame += 1;
                 if self.frame >= self.max_frame {
                     self.frame = 0;
                 }

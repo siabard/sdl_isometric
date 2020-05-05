@@ -115,14 +115,13 @@ fn main() -> Result<(), String> {
 
         let state_result = states.last_mut().unwrap().next_result();
         match state_result {
-            StateResult::Push(s) => match s {
-                StateInfo::Game(_name) => {
+            StateResult::Push(s) => {
+                if let StateInfo::Game(_name) = s {
                     let mut game_state = GameState::new();
                     game_state.init(&texture_creator, &font_context);
                     states.push(Box::new(game_state));
                 }
-                _ => (),
-            },
+            }
 
             StateResult::Pop => {
                 states.pop().unwrap();

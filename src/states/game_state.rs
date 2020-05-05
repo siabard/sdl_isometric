@@ -1,5 +1,6 @@
+use crate::components::*;
 use crate::constant::*;
-use crate::entity::*;
+use crate::entities::*;
 use crate::map::*;
 use crate::states::*;
 
@@ -20,12 +21,15 @@ use sdl2::video::WindowContext;
 use sdl2::mixer::Chunk;
 use sdl2::mixer::Music;
 
+use uuid::Uuid;
+
 /// 게임 실행용 State
 pub struct GameState<'a> {
     texture_manager: TextureManager<'a>,
-    pc2: Entity,
-    pc: UnitCharacter,
-    enemy: UnitCharacter,
+    entities: HashMap<Uuid, Rc<RefCell<Entity>>>,
+    //pc2: Entity,
+    //pc: UnitCharacter,
+    //enemy: UnitCharacter,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Rc<RefCell<Chunk>>>,
     state_result: StateResult,
@@ -40,16 +44,24 @@ pub struct GameState<'a> {
 impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
         let texture_manager = TextureManager::new();
-        let pc = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+        //let pc = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
 
-        let mut entity = Entity::new("PLAYER".to_owned());
+        let mut entity = Entity::new(EntityType::PLAYER);
         entity.set_movement(0., 0., (0, 0), (0., 0.), 200., 1500., 900.);
-        let enemy = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+
+        //let enemy = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+        let mut enemy = Entity::new(EntityType::MOB);
+        enemy.set_movement(200.0, 200.0, (0, 0), (0.0, 0.0), 200.0, 1500.0, 900.0);
+
+        let mut entities = HashMap::new();
+        entities.insert(entity.id, Rc::new(RefCell::new(entity)));
+        entities.insert(enemy.id, Rc::new(RefCell::new(enemy)));
         GameState {
             texture_manager,
-            pc,
-            pc2: entity,
-            enemy,
+            entities,
+            //pc,
+            //pc2: entity,
+            //enemy,
             state_result: StateResult::Default,
             map: None,
             music: None,
@@ -93,16 +105,49 @@ impl<'a> GameState<'a> {
             0.,
             w,
             h,
-            uc_vec.clone(),
+            uc_vec,
             0,
             max_frame as usize,
             0.25,
             fliph,
             flipv,
         );
-        self.pc2.animation.insert(id, animation);
-        self.pc.set_animation(id, uc_vec.clone(), fliph, flipv);
-        self.enemy.set_animation(id, uc_vec, fliph, flipv);
+
+        // player 캐릭터에 대한 animation 등록
+        let players: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().animation.insert(id, animation.clone());
+
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in players {
+            self.entities.insert(uuid, entity);
+        }
+        // enemy 캐릭터에 대한 animation 등록
+        let enemies: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().animation.insert(id, animation.clone());
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in enemies {
+            self.entities.insert(uuid, entity);
+        }
+
+        //self.pc2.animation.insert(id, animation);
+        //self.pc.set_animation(id, uc_vec.clone(), fliph, flipv);
+        //self.enemy.set_animation(id, uc_vec, fliph, flipv);
     }
 
     pub fn add_music(&mut self, path: String) {
@@ -140,9 +185,39 @@ impl<'a> GameState<'a> {
 
         self.add_unit_char(Direction::Stop, 0, 0, 16, 16, 1, false, false);
 
-        self.pc2.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
-        self.pc.set_hitbox(2, 0, 12, 16);
-        self.enemy.set_hitbox(2, 0, 12, 16);
+        // player 캐릭터에 대한 animation 등록
+        let players: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in players {
+            self.entities.insert(uuid, entity);
+        }
+        // enemy 캐릭터에 대한 animation 등록
+        let enemies: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in enemies {
+            self.entities.insert(uuid, entity);
+        }
+        //self.pc2.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
+        //self.pc.set_hitbox(2, 0, 12, 16);
+        //self.enemy.set_hitbox(2, 0, 12, 16);
 
         // 지도 등록
         self.add_texture(
@@ -158,8 +233,30 @@ impl<'a> GameState<'a> {
         self.map = Some(map);
 
         // 적 위치 변경
-        self.enemy.x = 300.0;
-        self.enemy.y = 200.0;
+        //self.enemy.x = 300.0;
+        //self.enemy.y = 200.0;
+        // enemy 캐릭터에 대한 위치 전환
+        let mut x: f64 = 300.0;
+        let mut y: f64 = 200.0;
+
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .map(move |(uuid, entity)| {
+                entity.borrow_mut().movement.as_mut().unwrap().x = x;
+                entity.borrow_mut().movement.as_mut().unwrap().y = y;
+                x += 100.0;
+                y += 100.0;
+
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
+        }
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
@@ -180,8 +277,15 @@ impl<'a> GameState<'a> {
         // 우측으로는 10% 여백이 가능한 만큼 우측으로 이동해야한다.
         // cy + ch 에 대해서도 동일한다.
 
-        let ux = self.pc2.movement.as_ref().unwrap().x as i32;
-        let uy = self.pc2.movement.as_ref().unwrap().y as i32;
+        let player: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .collect();
+
+        let ux = player[0].1.borrow().movement.as_ref().unwrap().x as i32;
+        let uy = player[0].1.borrow().movement.as_ref().unwrap().y as i32;
 
         let width_margin = (self.cw as f32 * 0.1) as u32;
         let height_margin = (self.ch as f32 * 0.1) as u32;
@@ -236,14 +340,12 @@ impl<'a> States for GameState<'a> {
                 } else if *k == Keycode::Num0 {
                     let music = self.music.as_ref().unwrap();
 
-                    if sdl2::mixer::Music::is_playing() == false {
+                    if !sdl2::mixer::Music::is_playing() {
                         music.play(-1).unwrap();
+                    } else if sdl2::mixer::Music::is_paused() {
+                        sdl2::mixer::Music::resume();
                     } else {
-                        if sdl2::mixer::Music::is_paused() {
-                            sdl2::mixer::Music::resume();
-                        } else {
-                            sdl2::mixer::Music::pause();
-                        }
+                        sdl2::mixer::Music::pause();
                     }
                 }
 
@@ -267,97 +369,263 @@ impl<'a> States for GameState<'a> {
 
     fn update(&mut self, dt: f64) -> StateResult {
         // 키보드 처리
+
         if self.keyboards.contains(&Keycode::Up) || self.keyboards.contains(&Keycode::W) {
             //self.pc.move_forward((0., -1.), dt);
+            /*
             self.pc2
                 .movement
                 .as_mut()
                 .unwrap()
                 .move_forward((0., -1.), dt);
+             */
+            let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+                .entities
+                .clone()
+                .into_iter()
+                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .map(|(uuid, entity)| {
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .move_forward((0.0, -1.0), dt);
+                    (uuid, entity)
+                })
+                .collect();
+            for (uuid, entity) in entities {
+                self.entities.insert(uuid, entity);
+            }
         }
         if self.keyboards.contains(&Keycode::Down) || self.keyboards.contains(&Keycode::S) {
             //self.pc.move_forward((0., 1.), dt);
+            /*
             self.pc2
                 .movement
                 .as_mut()
                 .unwrap()
                 .move_forward((0., 1.), dt);
+             */
+            let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+                .entities
+                .clone()
+                .into_iter()
+                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .map(|(uuid, entity)| {
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .move_forward((0.0, 1.0), dt);
+                    (uuid, entity)
+                })
+                .collect();
+            for (uuid, entity) in entities {
+                self.entities.insert(uuid, entity);
+            }
         }
         if self.keyboards.contains(&Keycode::Left) || self.keyboards.contains(&Keycode::A) {
             //self.pc.move_forward((-1., 0.), dt);
+            /*
             self.pc2
                 .movement
                 .as_mut()
                 .unwrap()
                 .move_forward((-1., 0.), dt);
+             */
+            let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+                .entities
+                .clone()
+                .into_iter()
+                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .map(|(uuid, entity)| {
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .move_forward((-1.0, 0.0), dt);
+                    (uuid, entity)
+                })
+                .collect();
+            for (uuid, entity) in entities {
+                self.entities.insert(uuid, entity);
+            }
         }
         if self.keyboards.contains(&Keycode::Right) || self.keyboards.contains(&Keycode::D) {
             //self.pc.move_forward((1., 0.), dt);
+            /*
             self.pc2
                 .movement
                 .as_mut()
                 .unwrap()
                 .move_forward((1., 0.), dt);
+             */
+            let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+                .entities
+                .clone()
+                .into_iter()
+                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .map(|(uuid, entity)| {
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .move_forward((1.0, 0.0), dt);
+                    (uuid, entity)
+                })
+                .collect();
+            for (uuid, entity) in entities {
+                self.entities.insert(uuid, entity);
+            }
         }
 
-        let old_hitbox = self.pc2.hitbox.as_ref().unwrap().get_rect();
+        let pc_old: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .collect();
 
-        self.pc2.update_predict(dt);
+        let old_hitbox = pc_old[0].1.borrow().hitbox.as_ref().unwrap().get_rect();
+
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::PLAYER
+                    || entity.borrow().type_ == EntityType::MOB
+            })
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().update_predict(dt);
+                (uuid, entity)
+            })
+            .collect();
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
+        }
+
+        //self.pc2.update_predict(dt);
         //self.pc.update_predict(dt);
-        self.enemy.update_predict(dt);
+        //self.enemy.update_predict(dt);
 
         // collision detection for predict
-        let directions = detect_collision(
-            &self.pc2.hitbox.as_ref().unwrap().get_rect(),
-            self.enemy.get_hitbox_predict().as_ref().unwrap(),
-        );
 
-        let predict_y = self.pc2.get_predict_y(dt) + self.pc2.hitbox.as_ref().unwrap().hy;
-        let predict_x = self.pc2.get_predict_x(dt) + self.pc2.hitbox.as_ref().unwrap().hx;
+        let pc_predict: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .collect();
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .map(move |(uuid, enemy)| {
+                let directions = detect_collision(
+                    &pc_predict[0].1.borrow().hitbox.as_ref().unwrap().get_rect(),
+                    &enemy.borrow().hitbox.as_ref().unwrap().get_rect(),
+                );
 
-        let predict_hitbox_y_only = Rect::new(
-            old_hitbox.x,
-            predict_y as i32,
-            old_hitbox.width(),
-            old_hitbox.height(),
-        );
-        let predict_hitbox_x_only = Rect::new(
-            predict_x as i32,
-            old_hitbox.y,
-            old_hitbox.width(),
-            old_hitbox.height(),
-        );
+                let predict_y = pc_predict[0].1.borrow().get_predict_y(dt)
+                    + pc_predict[0].1.borrow().hitbox.as_ref().unwrap().hy;
+                let predict_x = pc_predict[0].1.borrow().get_predict_x(dt)
+                    + pc_predict[0].1.borrow().hitbox.as_ref().unwrap().hx;
 
-        let directions_y_only = detect_collision(
-            &predict_hitbox_y_only,
-            self.enemy.get_hitbox_predict().as_ref().unwrap(),
-        );
+                let predict_hitbox_y_only = Rect::new(
+                    old_hitbox.x,
+                    predict_y as i32,
+                    old_hitbox.width(),
+                    old_hitbox.height(),
+                );
+                let predict_hitbox_x_only = Rect::new(
+                    predict_x as i32,
+                    old_hitbox.y,
+                    old_hitbox.width(),
+                    old_hitbox.height(),
+                );
 
-        let directions_x_only = detect_collision(
-            &predict_hitbox_x_only,
-            self.enemy.get_hitbox_predict().as_ref().unwrap(),
-        );
+                let directions_y_only = detect_collision(
+                    &predict_hitbox_y_only,
+                    &enemy.borrow().hitbox.as_ref().unwrap().get_rect(),
+                );
 
-        if directions {
-            if directions_y_only {
-                //self.pc.reset_velocity_y();
-                self.pc2.movement.as_mut().unwrap().reset_velocity_y();
-                self.enemy.reset_velocity_y();
-            }
+                let directions_x_only = detect_collision(
+                    &predict_hitbox_x_only,
+                    &enemy.borrow().hitbox.as_ref().unwrap().get_rect(),
+                );
 
-            if directions_x_only {
-                //self.pc.reset_velocity_x();
-                self.pc2.movement.as_mut().unwrap().reset_velocity_x();
-                self.enemy.reset_velocity_x();
-            }
+                if directions {
+                    if directions_y_only {
+                        //self.pc.reset_velocity_y();
+                        pc_predict[0]
+                            .1
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .reset_velocity_y();
+                        enemy
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .reset_velocity_y();
+                    }
+
+                    if directions_x_only {
+                        //self.pc.reset_velocity_x();
+
+                        pc_predict[0]
+                            .1
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .reset_velocity_y();
+                        enemy
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .reset_velocity_x();
+                    }
+                }
+
+                (uuid, enemy)
+            })
+            .collect();
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
         }
 
         // 실제 움직이게 한다.
 
         //self.pc.update(dt);
-        self.pc2.update(dt);
-        self.enemy.update(dt);
+        //self.pc2.update(dt);
+        //self.enemy.update(dt);
 
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::PLAYER
+                    || entity.borrow().type_ == EntityType::MOB
+            })
+            .map(|(uuid, entity)| {
+                entity.borrow_mut().update(dt);
+                (uuid, entity)
+            })
+            .collect();
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
+        }
         self.update_camera();
         StateResult::Default
     }
@@ -378,8 +646,12 @@ impl<'a> States for GameState<'a> {
         let texture = texture_refcell.borrow();
 
         //self.pc.render(canvas, &camera_rect, &texture);
-        self.pc2.render(canvas, &camera_rect, &texture);
-        self.enemy.render(canvas, &camera_rect, &texture);
+        for (_, entity) in self.entities.clone().into_iter() {
+            entity.borrow().render(canvas, &camera_rect, &texture)
+        }
+
+        //self.pc2.render(canvas, &camera_rect, &texture);
+        //self.enemy.render(canvas, &camera_rect, &texture);
         StateResult::Default
     }
 
@@ -394,33 +666,62 @@ impl<'a> States for GameState<'a> {
         let v_x = transform_value(x, REVERSE_WIDTH_RATIO);
         let v_y = transform_value(y, REVERSE_HEIGHT_RATIO);
 
-        // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
-        let diff_x = (self.pc2.movement.as_ref().unwrap().x - v_x as f64).abs();
-        let diff_y = (self.pc2.movement.as_ref().unwrap().y - v_y as f64).abs();
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .map(move |(uuid, entity)| {
+                // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
+                let diff_x = (entity.borrow().movement.as_ref().unwrap().x - v_x as f64).abs();
+                let diff_y = (entity.borrow().movement.as_ref().unwrap().y - v_y as f64).abs();
 
-        if diff_x > diff_y {
-            if self.pc2.movement.as_ref().unwrap().x > v_x as f64 {
-                //self.pc.direction = Direction::Left;
-                //self.pc.facing = (-1, 0);
-                self.pc2.movement.as_mut().unwrap().set_facing((-1, 0));
-            } else if self.pc2.movement.as_ref().unwrap().x < v_x as f64 {
-                //self.pc.direction = Direction::Right;
-                //self.pc.facing = (1, 0);
-                self.pc2.movement.as_mut().unwrap().set_facing((1, 0));
-            }
-        } else {
-            if self.pc2.movement.as_ref().unwrap().y > v_y as f64 {
-                //self.pc.direction = Direction::Up;
-                //self.pc.facing = (0, -1);
-                self.pc2.movement.as_mut().unwrap().set_facing((0, -1));
-            } else if self.pc2.movement.as_ref().unwrap().y < v_y as f64 {
-                //self.pc.direction = Direction::Down;
-                //self.pc.facing = (0, 1);
-                self.pc2.movement.as_mut().unwrap().set_facing((0, 1));
-            }
+                if diff_x > diff_y {
+                    if entity.borrow().movement.as_ref().unwrap().x > v_x as f64 {
+                        //self.pc.direction = Direction::Left;
+                        //self.pc.facing = (-1, 0);
+                        entity
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .set_facing((-1, 0));
+                    } else if entity.borrow().movement.as_ref().unwrap().x < v_x as f64 {
+                        //self.pc.direction = Direction::Right;
+                        //self.pc.facing = (1, 0);
+                        entity
+                            .borrow_mut()
+                            .movement
+                            .as_mut()
+                            .unwrap()
+                            .set_facing((1, 0));
+                    }
+                } else if entity.borrow().movement.as_ref().unwrap().y > v_y as f64 {
+                    //self.pc.direction = Direction::Up;
+                    //self.pc.facing = (0, -1);
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .set_facing((0, -1));
+                } else if entity.borrow().movement.as_ref().unwrap().y < v_y as f64 {
+                    //self.pc.direction = Direction::Down;
+                    //self.pc.facing = (0, 1);
+                    entity
+                        .borrow_mut()
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .set_facing((0, 1));
+                }
+                (uuid, entity)
+            })
+            .collect();
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
         }
-
-        self.pc.set_deg((v_x as f32, v_y as f32));
+        //self.pc.set_deg((v_x as f32, v_y as f32));
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
@@ -428,7 +729,7 @@ impl<'a> States for GameState<'a> {
             );
         }
         if new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
-            self.pc.attack();
+            //self.pc.attack();
         }
     }
 

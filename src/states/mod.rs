@@ -1,29 +1,12 @@
 use crate::animation::*;
-use crate::constant::*;
-use crate::gui::*;
-use crate::map::*;
 use crate::texture_manager::*;
 use crate::*;
 
-use uuid::Uuid;
-
-use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::HashSet;
 
-use std::path::Path;
-use std::rc::Rc;
-
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use sdl2::render::TextureCreator;
 use sdl2::render::WindowCanvas;
-use sdl2::video::WindowContext;
-
-use sdl2::mixer::Chunk;
-use sdl2::mixer::Music;
 
 pub trait States {
     ///  키 입력 등 일반적인 부분의 처리
