@@ -23,6 +23,7 @@ pub enum Direction {
 /// 캐릭터 분류
 pub mod character {
     pub const PLAYER: &str = "player";
+    pub const ENEMY: &str = "enemy";
 }
 
 #[derive(PartialEq, Copy, Clone)]

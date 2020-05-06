@@ -87,6 +87,7 @@ impl<'a> GameState<'a> {
 
     pub fn add_unit_char(
         &mut self,
+        type_: EntityType,
         id: Direction,
         x: i32,
         y: i32,
@@ -114,12 +115,12 @@ impl<'a> GameState<'a> {
             flipv,
         );
 
-        // player 캐릭터에 대한 animation 등록
-        let players: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+        // 캐릭터에 대한 animation 등록
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .filter(|(_, entity)| entity.borrow().type_ == type_)
             .map(|(uuid, entity)| {
                 entity.borrow_mut().animation.insert(id, animation.clone());
 
@@ -127,25 +128,9 @@ impl<'a> GameState<'a> {
             })
             .collect();
 
-        for (uuid, entity) in players {
+        for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
-        // enemy 캐릭터에 대한 animation 등록
-        let enemies: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
-            .entities
-            .clone()
-            .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
-            .map(|(uuid, entity)| {
-                entity.borrow_mut().animation.insert(id, animation.clone());
-                (uuid, entity)
-            })
-            .collect();
-
-        for (uuid, entity) in enemies {
-            self.entities.insert(uuid, entity);
-        }
-
         //self.pc2.animation.insert(id, animation);
         //self.pc.set_animation(id, uc_vec.clone(), fliph, flipv);
         //self.enemy.set_animation(id, uc_vec, fliph, flipv);
@@ -173,20 +158,130 @@ impl<'a> GameState<'a> {
             "resources/GodotPlayer.png".to_string(),
         );
 
+        self.add_texture(
+            texture_creator,
+            String::from(character::ENEMY),
+            "resources/stalfaux.png".to_string(),
+        );
+
         // 캐릭터 애니메이션 생성
-        self.add_unit_char(Direction::Down, 0, 0, 16, 16, 2, false, false);
-        self.add_unit_char(Direction::Left, 32, 0, 16, 16, 2, true, false);
-        self.add_unit_char(Direction::Up, 64, 0, 16, 16, 2, false, false);
-        self.add_unit_char(Direction::Right, 32, 0, 16, 16, 2, false, false);
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::Down,
+            0,
+            0,
+            16,
+            16,
+            2,
+            false,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::Left,
+            32,
+            0,
+            16,
+            16,
+            2,
+            true,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::Up,
+            64,
+            0,
+            16,
+            16,
+            2,
+            false,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::Right,
+            32,
+            0,
+            16,
+            16,
+            2,
+            false,
+            false,
+        );
 
-        self.add_unit_char(Direction::IdleDown, 0, 0, 16, 16, 1, false, false);
-        self.add_unit_char(Direction::IdleLeft, 32, 0, 16, 16, 1, true, false);
-        self.add_unit_char(Direction::IdleUp, 64, 0, 16, 16, 1, false, false);
-        self.add_unit_char(Direction::IdleRight, 32, 0, 16, 16, 1, false, false);
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::IdleDown,
+            0,
+            0,
+            16,
+            16,
+            1,
+            false,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::IdleLeft,
+            32,
+            0,
+            16,
+            16,
+            1,
+            true,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::IdleUp,
+            64,
+            0,
+            16,
+            16,
+            1,
+            false,
+            false,
+        );
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::IdleRight,
+            32,
+            0,
+            16,
+            16,
+            1,
+            false,
+            false,
+        );
 
-        self.add_unit_char(Direction::Stop, 0, 0, 16, 16, 1, false, false);
+        self.add_unit_char(
+            EntityType::PLAYER,
+            Direction::Stop,
+            0,
+            0,
+            16,
+            16,
+            1,
+            false,
+            false,
+        );
 
-        // player 캐릭터에 대한 animation 등록
+        // MOB 클래스 이밎 등록
+
+        self.add_unit_char(
+            EntityType::MOB,
+            Direction::Stop,
+            0,
+            0,
+            16,
+            16,
+            1,
+            false,
+            false,
+        );
+
+        // player 캐릭터에 대한 Hitbox 등록
         let players: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
             .clone()
@@ -201,7 +296,7 @@ impl<'a> GameState<'a> {
         for (uuid, entity) in players {
             self.entities.insert(uuid, entity);
         }
-        // enemy 캐릭터에 대한 animation 등록
+        // enemy 캐릭터에 대한 Hitbox 등록
         let enemies: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
             .clone()
@@ -637,18 +732,31 @@ impl<'a> States for GameState<'a> {
         if let Some(map) = &self.map {
             map.render(canvas, &camera_rect, &self.texture_manager);
         }
-        // 모든 스프라이트를 WindowCanvas 에 출력..
-        // 다 좋은데... x,y 좌표는??
-        let texture_refcell = self
+        // PLAYER 스프라이트를 WindowCanvas 에 출력..
+        let texture_player_refcell = self
             .texture_manager
             .textures
             .get(&String::from(character::PLAYER))
             .unwrap();
-        let texture = texture_refcell.borrow();
+        let texture_player = texture_player_refcell.borrow();
+
+        // ENEMY 스프라이트를 WindowCanvas 에 출력하도록 함
+        let texture_mob_refcell = self
+            .texture_manager
+            .textures
+            .get(&String::from(character::ENEMY))
+            .unwrap();
+        let texture_mob = texture_mob_refcell.borrow();
 
         //self.pc.render(canvas, &camera_rect, &texture);
         for (_, entity) in self.entities.clone().into_iter() {
-            entity.borrow().render(canvas, &camera_rect, &texture)
+            if entity.borrow().type_ == EntityType::PLAYER {
+                entity
+                    .borrow()
+                    .render(canvas, &camera_rect, &texture_player);
+            } else if entity.borrow().type_ == EntityType::MOB {
+                entity.borrow().render(canvas, &camera_rect, &texture_mob);
+            }
         }
 
         //self.pc2.render(canvas, &camera_rect, &texture);
@@ -667,13 +775,13 @@ impl<'a> States for GameState<'a> {
         let v_x = transform_value(x, REVERSE_WIDTH_RATIO) + self.cx;
         let v_y = transform_value(y, REVERSE_HEIGHT_RATIO) + self.cy;
 
+        // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
         let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
             .clone()
             .into_iter()
             .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
             .map(move |(uuid, entity)| {
-                // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
                 let entity_x = entity.borrow().movement.as_ref().unwrap().get_pos_x();
                 let entity_y = entity.borrow().movement.as_ref().unwrap().get_pos_y();
                 let diff_x = (entity_x - v_x as f64).abs();
@@ -721,6 +829,7 @@ impl<'a> States for GameState<'a> {
                 (uuid, entity)
             })
             .collect();
+
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
