@@ -159,4 +159,40 @@ impl MovementComponent {
     pub fn set_facing(&mut self, facing: Vector2<i32>) {
         self.facing = facing;
     }
+
+    /// x, y위치를 동시에 설정한다.
+    pub fn set_pos(&mut self, pos: (f64, f64)) {
+        self.x = pos.0;
+        self.y = pos.1;
+    }
+
+    /// x 위치를 설정한다.
+    pub fn set_pos_x(&mut self, x: f64) {
+        self.x = x;
+    }
+
+    /// y 위치를 설정한다.
+    pub fn set_pos_y(&mut self, y: f64) {
+        self.y = y;
+    }
+
+    /// x, y위치를 동시에 가져온다.
+    pub fn get_pos(&self) -> (f64, f64) {
+        (self.x, self.y)
+    }
+
+    /// x 위치를 가져온다.
+    pub fn get_pos_x(&self) -> f64 {
+        self.x
+    }
+
+    /// y위치를 가져온다.
+    pub fn get_pos_y(&self) -> f64 {
+        self.y
+    }
+
+    /// facing 저옵를 가져온다.
+    pub fn get_facing(&self) -> Vector2<i32> {
+        self.facing
+    }
 }

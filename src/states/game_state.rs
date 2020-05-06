@@ -51,6 +51,7 @@ impl<'a> GameState<'a> {
 
         //let enemy = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
         let mut enemy = Entity::new(EntityType::MOB);
+
         enemy.set_movement(200.0, 200.0, (0, 0), (0.0, 0.0), 200.0, 1500.0, 900.0);
 
         let mut entities = HashMap::new();
@@ -245,8 +246,8 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
             .map(move |(uuid, entity)| {
-                entity.borrow_mut().movement.as_mut().unwrap().x = x;
-                entity.borrow_mut().movement.as_mut().unwrap().y = y;
+                entity.borrow_mut().movement.as_mut().unwrap().set_pos_x(x);
+                entity.borrow_mut().movement.as_mut().unwrap().set_pos_y(y);
                 x += 100.0;
                 y += 100.0;
 
@@ -284,8 +285,8 @@ impl<'a> GameState<'a> {
             .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
             .collect();
 
-        let ux = player[0].1.borrow().movement.as_ref().unwrap().x as i32;
-        let uy = player[0].1.borrow().movement.as_ref().unwrap().y as i32;
+        let ux = player[0].1.borrow().movement.as_ref().unwrap().get_pos_x() as i32;
+        let uy = player[0].1.borrow().movement.as_ref().unwrap().get_pos_y() as i32;
 
         let width_margin = (self.cw as f32 * 0.1) as u32;
         let height_margin = (self.ch as f32 * 0.1) as u32;
@@ -673,11 +674,13 @@ impl<'a> States for GameState<'a> {
             .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
             .map(move |(uuid, entity)| {
                 // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
-                let diff_x = (entity.borrow().movement.as_ref().unwrap().x - v_x as f64).abs();
-                let diff_y = (entity.borrow().movement.as_ref().unwrap().y - v_y as f64).abs();
+                let entity_x = entity.borrow().movement.as_ref().unwrap().get_pos_x();
+                let entity_y = entity.borrow().movement.as_ref().unwrap().get_pos_y();
+                let diff_x = (entity_x - v_x as f64).abs();
+                let diff_y = (entity_y - v_y as f64).abs();
 
                 if diff_x > diff_y {
-                    if entity.borrow().movement.as_ref().unwrap().x > v_x as f64 {
+                    if entity_x > v_x as f64 {
                         //self.pc.direction = Direction::Left;
                         //self.pc.facing = (-1, 0);
                         entity
@@ -686,7 +689,7 @@ impl<'a> States for GameState<'a> {
                             .as_mut()
                             .unwrap()
                             .set_facing((-1, 0));
-                    } else if entity.borrow().movement.as_ref().unwrap().x < v_x as f64 {
+                    } else if entity_x < v_x as f64 {
                         //self.pc.direction = Direction::Right;
                         //self.pc.facing = (1, 0);
                         entity
@@ -696,7 +699,7 @@ impl<'a> States for GameState<'a> {
                             .unwrap()
                             .set_facing((1, 0));
                     }
-                } else if entity.borrow().movement.as_ref().unwrap().y > v_y as f64 {
+                } else if entity_y > v_y as f64 {
                     //self.pc.direction = Direction::Up;
                     //self.pc.facing = (0, -1);
                     entity
@@ -705,7 +708,7 @@ impl<'a> States for GameState<'a> {
                         .as_mut()
                         .unwrap()
                         .set_facing((0, -1));
-                } else if entity.borrow().movement.as_ref().unwrap().y < v_y as f64 {
+                } else if entity_y < v_y as f64 {
                     //self.pc.direction = Direction::Down;
                     //self.pc.facing = (0, 1);
                     entity
