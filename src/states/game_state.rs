@@ -23,6 +23,8 @@ use sdl2::mixer::Music;
 
 use uuid::Uuid;
 
+use rand::prelude::*;
+
 /// 게임 실행용 State
 pub struct GameState<'a> {
     texture_manager: TextureManager<'a>,
@@ -45,18 +47,32 @@ impl<'a> GameState<'a> {
     pub fn new() -> GameState<'a> {
         let texture_manager = TextureManager::new();
         //let pc = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
+        let mut entities = HashMap::new();
 
         let mut entity = Entity::new(EntityType::PLAYER);
         entity.set_movement(0., 0., (0, 0), (0., 0.), 200., 1500., 900.);
 
-        //let enemy = UnitCharacter::new(16, 16, 2, 200., 1500., 900.);
-        let mut enemy = Entity::new(EntityType::MOB);
-
-        enemy.set_movement(200.0, 200.0, (0, 0), (0.0, 0.0), 200.0, 1500.0, 900.0);
-
-        let mut entities = HashMap::new();
         entities.insert(entity.id, Rc::new(RefCell::new(entity)));
-        entities.insert(enemy.id, Rc::new(RefCell::new(enemy)));
+
+        for _ in 0..3 {
+            let mut rng = rand::thread_rng();
+            let x: f64 = rng.gen::<f64>() * 100.0 - 200.0;
+            let y: f64 = rng.gen::<f64>() * 100.0 - 200.0;
+            let speed: f64 = rng.gen::<f64>() * 80.0 - 100.0;
+            let mut enemy = Entity::new(EntityType::MOB);
+
+            enemy.set_movement(
+                100.0 + x,
+                100.0 + y,
+                (0, 0),
+                (0.0, 0.0),
+                100.0 + speed,
+                2000.0,
+                300.0,
+            );
+            entities.insert(enemy.id, Rc::new(RefCell::new(enemy)));
+        }
+
         GameState {
             texture_manager,
             entities,
@@ -328,7 +344,7 @@ impl<'a> GameState<'a> {
         map.init_map(2, 32, 0, 16, 16);
         self.map = Some(map);
 
-        // 적 위치 변경
+        // 적 위치 초기화
         //self.enemy.x = 300.0;
         //self.enemy.y = 200.0;
         // enemy 캐릭터에 대한 위치 전환
@@ -418,52 +434,8 @@ impl<'a> GameState<'a> {
             }
         }
     }
-}
 
-impl<'a> States for GameState<'a> {
-    fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
-        match event {
-            Event::KeyDown {
-                keycode: Some(k), ..
-            } => {
-                self.keyboards.insert(*k);
-                if *k == Keycode::Num1 {
-                    let chunk = self.chunks.get(&"high".to_owned()).unwrap().borrow();
-                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
-                } else if *k == Keycode::Num2 {
-                    let chunk = self.chunks.get(&"low".to_owned()).unwrap().borrow();
-                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
-                } else if *k == Keycode::Num0 {
-                    let music = self.music.as_ref().unwrap();
-
-                    if !sdl2::mixer::Music::is_playing() {
-                        music.play(-1).unwrap();
-                    } else if sdl2::mixer::Music::is_paused() {
-                        sdl2::mixer::Music::resume();
-                    } else {
-                        sdl2::mixer::Music::pause();
-                    }
-                }
-
-                if *k == Keycode::Escape {
-                    self.state_result = StateResult::Pop;
-                } else {
-                    self.state_result = StateResult::Default;
-                }
-            }
-            Event::KeyUp {
-                keycode: Some(k), ..
-            } => {
-                self.keyboards.remove(&k);
-                self.state_result = StateResult::Default;
-            }
-            _ => self.state_result = StateResult::Default,
-        };
-
-        StateResult::Default
-    }
-
-    fn update(&mut self, dt: f64) -> StateResult {
+    fn update_input(&mut self, dt: f64) {
         // 키보드 처리
 
         if self.keyboards.contains(&Keycode::Up) || self.keyboards.contains(&Keycode::W) {
@@ -578,7 +550,9 @@ impl<'a> States for GameState<'a> {
                 self.entities.insert(uuid, entity);
             }
         }
+    }
 
+    fn update_collision(&mut self, dt: f64) {
         let pc_old: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
             .clone()
@@ -604,10 +578,6 @@ impl<'a> States for GameState<'a> {
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
-
-        //self.pc2.update_predict(dt);
-        //self.pc.update_predict(dt);
-        //self.enemy.update_predict(dt);
 
         // collision detection for predict
 
@@ -699,12 +669,10 @@ impl<'a> States for GameState<'a> {
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
+    }
 
-        // 실제 움직이게 한다.
-
-        //self.pc.update(dt);
-        //self.pc2.update(dt);
-        //self.enemy.update(dt);
+    fn update_entities(&mut self, dt: f64) {
+        // EntityType::PLAYER와 EntityType::MOB에 대한 이동 처리
 
         let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
             .entities
@@ -722,6 +690,106 @@ impl<'a> States for GameState<'a> {
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
+    }
+
+    /// 적 AI설정
+    fn update_enemy_ai(&mut self, dt: f64) {
+        // MOB은 자신과 캐릭터간의 방향 벡터를 계산하여
+        // 그만큼 움직이도록 스스로의 방향 벡터를 설정한다.
+
+        let pc_vec: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .collect();
+
+        let pc = pc_vec[0].1.borrow();
+
+        let enemies: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .map(|(uuid, entity)| {
+                let forwarding = facing_from_to(
+                    pc.movement.as_ref().unwrap(),
+                    entity.borrow().movement.as_ref().unwrap(),
+                );
+                entity
+                    .borrow_mut()
+                    .movement
+                    .as_mut()
+                    .unwrap()
+                    .move_forward(forwarding, dt);
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in enemies {
+            self.entities.insert(uuid, entity);
+        }
+    }
+}
+
+impl<'a> States for GameState<'a> {
+    fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
+        match event {
+            Event::KeyDown {
+                keycode: Some(k), ..
+            } => {
+                self.keyboards.insert(*k);
+                if *k == Keycode::Num1 {
+                    let chunk = self.chunks.get(&"high".to_owned()).unwrap().borrow();
+                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                } else if *k == Keycode::Num2 {
+                    let chunk = self.chunks.get(&"low".to_owned()).unwrap().borrow();
+                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                } else if *k == Keycode::Num0 {
+                    let music = self.music.as_ref().unwrap();
+
+                    if !sdl2::mixer::Music::is_playing() {
+                        music.play(-1).unwrap();
+                    } else if sdl2::mixer::Music::is_paused() {
+                        sdl2::mixer::Music::resume();
+                    } else {
+                        sdl2::mixer::Music::pause();
+                    }
+                }
+
+                if *k == Keycode::Escape {
+                    self.state_result = StateResult::Pop;
+                } else {
+                    self.state_result = StateResult::Default;
+                }
+            }
+            Event::KeyUp {
+                keycode: Some(k), ..
+            } => {
+                self.keyboards.remove(&k);
+                self.state_result = StateResult::Default;
+            }
+            _ => self.state_result = StateResult::Default,
+        };
+
+        StateResult::Default
+    }
+
+    /// 프레임별 업데이트 처리하기
+    fn update(&mut self, dt: f64) -> StateResult {
+        // 키보드 입력에 따른 캐릭터 예비 이동 처리
+        self.update_input(dt);
+
+        // 적의 AI 이동 예비 처리
+        self.update_enemy_ai(dt);
+
+        // 캐릭터간 충돌
+        self.update_collision(dt);
+
+        // 캐릭터 실제 업데이트 처리
+        self.update_entities(dt);
+
+        // 카메라 위치 변경
         self.update_camera();
         StateResult::Default
     }
