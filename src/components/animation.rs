@@ -8,8 +8,8 @@ use sdl2::render::WindowCanvas;
 pub struct AnimationComponent {
     pub x: f64,
     pub y: f64,
-    w: u32,
-    h: u32,
+    pub w: u32,
+    pub h: u32,
     frames: Vec<Rect>,
     frame: usize,
     max_frame: usize,

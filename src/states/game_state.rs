@@ -70,6 +70,7 @@ impl<'a> GameState<'a> {
                 2000.0,
                 300.0,
             );
+
             entities.insert(enemy.id, Rc::new(RefCell::new(enemy)));
         }
 
@@ -791,6 +792,7 @@ impl<'a> States for GameState<'a> {
 
         // 카메라 위치 변경
         self.update_camera();
+
         StateResult::Default
     }
 
@@ -816,7 +818,6 @@ impl<'a> States for GameState<'a> {
             .unwrap();
         let texture_mob = texture_mob_refcell.borrow();
 
-        //self.pc.render(canvas, &camera_rect, &texture);
         for (_, entity) in self.entities.clone().into_iter() {
             if entity.borrow().type_ == EntityType::PLAYER {
                 entity
@@ -827,8 +828,6 @@ impl<'a> States for GameState<'a> {
             }
         }
 
-        //self.pc2.render(canvas, &camera_rect, &texture);
-        //self.enemy.render(canvas, &camera_rect, &texture);
         StateResult::Default
     }
 
@@ -901,15 +900,46 @@ impl<'a> States for GameState<'a> {
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
-        //self.pc.set_deg((v_x as f32, v_y as f32));
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
+            // 버튼이 클릭되거나, 놓여짐..
+            /*
             println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
                 v_x, v_y, new_buttons, old_buttons
             );
+            */
         }
-        if new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
-            //self.pc.attack();
+
+        let entities: Vec<(Uuid, Rc<RefCell<Entity>>)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .map(move |(uuid, entity)| {
+                //self.pc.set_deg((v_x as f32, v_y as f32));
+
+                {
+                    let tmps = entity.borrow().clone();
+                    let movement = tmps.movement.as_ref().unwrap();
+                    let direction = facing_to_direction(movement.get_facing());
+                    let animation = tmps.animation.get(&direction).unwrap();
+
+                    entity
+                        .borrow_mut()
+                        .attack
+                        .as_mut()
+                        .unwrap()
+                        .set_deg((v_x as f64, v_y as f64), animation);
+                }
+
+                if new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
+                    entity.borrow_mut().attack.as_mut().unwrap().attack();
+                }
+                (uuid, entity)
+            })
+            .collect();
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
         }
     }
 

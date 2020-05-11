@@ -23,6 +23,7 @@ pub struct Entity {
     pub hitbox: Option<HitboxComponent>,
     pub animation: HashMap<Direction, AnimationComponent>,
     pub movement: Option<MovementComponent>,
+    pub attack: Option<AttackComponent>,
 }
 
 impl Entity {
@@ -33,6 +34,7 @@ impl Entity {
             hitbox: None,
             movement: None,
             animation: HashMap::new(),
+            attack: Some(AttackComponent::new()),
         }
     }
 
@@ -61,6 +63,10 @@ impl Entity {
         ));
     }
 
+    pub fn set_attack(&mut self) {
+        self.attack = Some(AttackComponent::new());
+    }
+
     pub fn get_predict_y(&self, dt: f64) -> f64 {
         self.movement.as_ref().unwrap().get_predict_y(dt)
     }
@@ -80,6 +86,7 @@ impl Entity {
     pub fn update(&mut self, dt: f64) {
         let movement = self.movement.as_mut().unwrap();
         let hitbox = self.hitbox.as_mut().unwrap();
+        let attack = self.attack.as_mut().unwrap();
 
         let direction = facing_to_direction(movement.get_facing());
         let animation = self.animation.get_mut(&direction).unwrap();
@@ -92,6 +99,8 @@ impl Entity {
         animation.update(dt);
 
         hitbox.update(dt, movement.get_pos_x(), movement.get_pos_y());
+
+        attack.update(dt);
     }
 
     pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
@@ -99,7 +108,9 @@ impl Entity {
         let direction = facing_to_direction(movement.get_facing());
         let animation = self.animation.get(&direction).unwrap();
         let hitbox = self.hitbox.as_ref().unwrap();
+        let attack = self.attack.as_ref().unwrap();
 
+        attack.render(canvas, camera, animation);
         animation.render(canvas, camera, texture);
         hitbox.render(canvas, camera);
     }
