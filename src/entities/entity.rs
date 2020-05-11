@@ -76,42 +76,49 @@ impl Entity {
     }
 
     pub fn update_predict(&mut self, dt: f64) {
-        let movement = self.movement.as_mut().unwrap();
-        let hitbox = self.hitbox.as_mut().unwrap();
+        if let Some(movement) = self.movement.as_mut() {
+            movement.update_predict(dt);
 
-        movement.update_predict(dt);
-        hitbox.update(dt, movement.get_predict_x(dt), movement.get_predict_y(dt));
+            if let Some(hitbox) = self.hitbox.as_mut() {
+                hitbox.update(dt, movement.get_predict_x(dt), movement.get_predict_y(dt));
+            }
+        }
     }
 
     pub fn update(&mut self, dt: f64) {
-        let movement = self.movement.as_mut().unwrap();
-        let hitbox = self.hitbox.as_mut().unwrap();
-        let attack = self.attack.as_mut().unwrap();
+        if let Some(movement) = self.movement.as_mut() {
+            let direction = facing_to_direction(movement.get_facing());
+            if let Some(animation) = self.animation.get_mut(&direction) {
+                movement.update(dt);
 
-        let direction = facing_to_direction(movement.get_facing());
-        let animation = self.animation.get_mut(&direction).unwrap();
+                animation.x = movement.get_pos_x();
+                animation.y = movement.get_pos_y();
+                animation.update(dt);
+            }
 
-        movement.update(dt);
+            if let Some(hitbox) = self.hitbox.as_mut() {
+                hitbox.update(dt, movement.get_pos_x(), movement.get_pos_y());
+            }
 
-        animation.x = movement.get_pos_x();
-        animation.y = movement.get_pos_y();
-
-        animation.update(dt);
-
-        hitbox.update(dt, movement.get_pos_x(), movement.get_pos_y());
-
-        attack.update(dt);
+            if let Some(attack) = self.attack.as_mut() {
+                attack.update(dt);
+            }
+        }
     }
 
     pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
-        let movement = self.movement.as_ref().unwrap();
-        let direction = facing_to_direction(movement.get_facing());
-        let animation = self.animation.get(&direction).unwrap();
-        let hitbox = self.hitbox.as_ref().unwrap();
-        let attack = self.attack.as_ref().unwrap();
+        if let Some(movement) = self.movement.as_ref() {
+            let direction = facing_to_direction(movement.get_facing());
+            if let Some(animation) = self.animation.get(&direction) {
+                if let Some(attack) = self.attack.as_ref() {
+                    attack.render(canvas, camera, animation);
+                }
+                animation.render(canvas, camera, texture);
+            }
 
-        attack.render(canvas, camera, animation);
-        animation.render(canvas, camera, texture);
-        hitbox.render(canvas, camera);
+            if let Some(hitbox) = self.hitbox.as_ref() {
+                hitbox.render(canvas, camera);
+            }
+        }
     }
 }

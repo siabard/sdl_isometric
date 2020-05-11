@@ -452,7 +452,10 @@ impl<'a> GameState<'a> {
                 .entities
                 .clone()
                 .into_iter()
-                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .filter(|(_, entity)| {
+                    entity.borrow().type_ == EntityType::PLAYER
+                        && entity.borrow().movement.as_ref().is_some()
+                })
                 .map(|(uuid, entity)| {
                     entity
                         .borrow_mut()
@@ -480,7 +483,10 @@ impl<'a> GameState<'a> {
                 .entities
                 .clone()
                 .into_iter()
-                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .filter(|(_, entity)| {
+                    entity.borrow().type_ == EntityType::PLAYER
+                        && entity.borrow().movement.as_ref().is_some()
+                })
                 .map(|(uuid, entity)| {
                     entity
                         .borrow_mut()
@@ -508,7 +514,10 @@ impl<'a> GameState<'a> {
                 .entities
                 .clone()
                 .into_iter()
-                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .filter(|(_, entity)| {
+                    entity.borrow().type_ == EntityType::PLAYER
+                        && entity.borrow().movement.as_ref().is_some()
+                })
                 .map(|(uuid, entity)| {
                     entity
                         .borrow_mut()
@@ -536,7 +545,10 @@ impl<'a> GameState<'a> {
                 .entities
                 .clone()
                 .into_iter()
-                .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+                .filter(|(_, entity)| {
+                    entity.borrow().type_ == EntityType::PLAYER
+                        && entity.borrow().movement.as_ref().is_some()
+                })
                 .map(|(uuid, entity)| {
                     entity
                         .borrow_mut()
@@ -568,8 +580,9 @@ impl<'a> GameState<'a> {
             .clone()
             .into_iter()
             .filter(|(_, entity)| {
-                entity.borrow().type_ == EntityType::PLAYER
-                    || entity.borrow().type_ == EntityType::MOB
+                (entity.borrow().type_ == EntityType::PLAYER
+                    || entity.borrow().type_ == EntityType::MOB)
+                    && entity.borrow().movement.as_ref().is_some()
             })
             .map(|(uuid, entity)| {
                 entity.borrow_mut().update_predict(dt);
@@ -592,7 +605,10 @@ impl<'a> GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::MOB
+                    && entity.borrow().hitbox.as_ref().is_some()
+            })
             .map(move |(uuid, enemy)| {
                 let directions = detect_collision(
                     &pc_predict[0].1.borrow().hitbox.as_ref().unwrap().get_rect(),
@@ -711,7 +727,10 @@ impl<'a> GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::MOB)
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::MOB
+                    && entity.borrow().movement.as_ref().is_some()
+            })
             .map(|(uuid, entity)| {
                 let forwarding = facing_from_to(
                     pc.movement.as_ref().unwrap(),
@@ -847,7 +866,10 @@ impl<'a> States for GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::PLAYER
+                    && entity.borrow().movement.as_ref().is_some()
+            })
             .map(move |(uuid, entity)| {
                 let entity_x = entity.borrow().movement.as_ref().unwrap().get_pos_x();
                 let entity_y = entity.borrow().movement.as_ref().unwrap().get_pos_y();
@@ -914,7 +936,10 @@ impl<'a> States for GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.borrow().type_ == EntityType::PLAYER)
+            .filter(|(_, entity)| {
+                entity.borrow().type_ == EntityType::PLAYER
+                    && entity.borrow().movement.as_ref().is_some()
+            })
             .map(move |(uuid, entity)| {
                 //self.pc.set_deg((v_x as f32, v_y as f32));
 
