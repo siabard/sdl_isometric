@@ -9,6 +9,7 @@ pub struct Node {
     pub x: usize,
     pub y: usize,
     pub previous: Option<(usize, usize)>,
+    pub blocked: bool,
 }
 
 /// A* Search Algorithm
@@ -30,6 +31,7 @@ impl AStar {
                     x: c,
                     y: r,
                     previous: None,
+                    blocked: false,
                 });
             }
         }
@@ -79,17 +81,19 @@ impl AStar {
 
                 // calcualate neighbors
                 let mut neighbors: Vec<(usize, usize)> = vec![];
-                if current.0 > 0 {
+                if current.0 > 0 && !self.get_node_blocked((current.0 - 1, current.1)) {
                     neighbors.push((current.0 - 1, current.1));
                 }
-                if current.0 < self.cols - 1 {
+
+                if current.0 < self.cols - 1 && !self.get_node_blocked((current.0 + 1, current.1)) {
                     neighbors.push((current.0 + 1, current.1));
                 }
-                if current.1 > 0 {
+
+                if current.1 > 0 && !self.get_node_blocked((current.0, current.1 - 1)) {
                     neighbors.push((current.0, current.1 - 1));
                 }
 
-                if current.1 < self.rows - 1 {
+                if current.1 < self.rows - 1 && !self.get_node_blocked((current.0, current.1 + 1)) {
                     neighbors.push((current.0, current.1 + 1));
                 }
 
@@ -131,6 +135,14 @@ impl AStar {
         // Find the path
         println!("DONE!");
         path
+    }
+
+    fn get_node_blocked(&mut self, (x, y): (usize, usize)) -> bool {
+        self.grid[y * self.cols + x].blocked
+    }
+
+    fn set_node_blocked(&mut self, (x, y): (usize, usize), blocked: bool) {
+        self.grid[y * self.cols + x].blocked = blocked;
     }
 
     fn get_node_previous(&mut self, (x, y): (usize, usize)) -> Option<(usize, usize)> {
