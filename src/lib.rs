@@ -65,6 +65,7 @@ pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
         && p1.y + p1.height() as i32 > p2.y
 }
 
+pub mod ai;
 pub mod animation;
 pub mod components;
 pub mod constant;
@@ -73,5 +74,6 @@ pub mod gui;
 pub mod map;
 pub mod states;
 pub mod texture_manager;
+
 pub use states::game_state::*;
 pub use states::init_state::*;
