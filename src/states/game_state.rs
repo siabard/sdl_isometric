@@ -904,16 +904,9 @@ impl<'a> States for GameState<'a> {
                         .unwrap()
                         .set_deg((v_x as f64, v_y as f64), animation);
                 }
-<<<<<<< HEAD
 
                 if new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
                     entity.attack.as_mut().unwrap().attack();
-=======
-                {
-                    if new_buttons.contains(&sdl2::mouse::MouseButton::Left) {
-                        entity.borrow_mut().attack.as_mut().unwrap().attack();
-                    }
->>>>>>> a1c5c95522be27449351ddcaf04157f6ec0c59f3
                 }
                 (uuid, entity)
             })
