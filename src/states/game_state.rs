@@ -26,12 +26,12 @@ use rand::prelude::*;
 /// 게임 실행용 State
 pub struct GameState<'a> {
     texture_manager: TextureManager<'a>,
-    entities: HashMap<Uuid, Box<Entity>>,
+    entities: HashMap<Uuid, Entity>,
     //pc2: Entity,
     //pc: UnitCharacter,
     //enemy: UnitCharacter,
     music: Option<Music<'a>>,
-    chunks: HashMap<String, Box<Chunk>>,
+    chunks: HashMap<String, Chunk>,
     state_result: StateResult,
     map: Option<Map>,
     keyboards: HashSet<sdl2::keyboard::Keycode>,
@@ -50,7 +50,7 @@ impl<'a> GameState<'a> {
         let mut entity = Entity::new(EntityType::PLAYER);
         entity.set_movement(0., 0., (0, 0), (0., 0.), 200., 1500., 900.);
 
-        entities.insert(entity.id, Box::new(entity));
+        entities.insert(entity.id, entity);
 
         for _ in 0..3 {
             let mut rng = rand::thread_rng();
@@ -69,7 +69,7 @@ impl<'a> GameState<'a> {
                 300.0,
             );
 
-            entities.insert(enemy.id, Box::new(enemy));
+            entities.insert(enemy.id, enemy);
         }
 
         GameState {
@@ -131,7 +131,7 @@ impl<'a> GameState<'a> {
         );
 
         // 캐릭터에 대한 animation 등록
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -159,7 +159,7 @@ impl<'a> GameState<'a> {
     pub fn add_sound(&mut self, key: String, path: String) {
         let chunk = sdl2::mixer::Chunk::from_file(&Path::new(&path)).unwrap();
 
-        self.chunks.insert(key, Box::new(chunk));
+        self.chunks.insert(key, chunk);
     }
 
     pub fn init(
@@ -297,7 +297,7 @@ impl<'a> GameState<'a> {
         );
 
         // player 캐릭터에 대한 Hitbox 등록
-        let players: Vec<(Uuid, Box<Entity>)> = self
+        let players: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -312,7 +312,7 @@ impl<'a> GameState<'a> {
             self.entities.insert(uuid, entity);
         }
         // enemy 캐릭터에 대한 Hitbox 등록
-        let enemies: Vec<(Uuid, Box<Entity>)> = self
+        let enemies: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -350,7 +350,7 @@ impl<'a> GameState<'a> {
         let mut x: f64 = 300.0;
         let mut y: f64 = 200.0;
 
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -388,7 +388,7 @@ impl<'a> GameState<'a> {
         // 우측으로는 10% 여백이 가능한 만큼 우측으로 이동해야한다.
         // cy + ch 에 대해서도 동일한다.
 
-        let player: Vec<(Uuid, Box<Entity>)> = self
+        let player: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -446,7 +446,7 @@ impl<'a> GameState<'a> {
                 .unwrap()
                 .move_forward((0., -1.), dt);
              */
-            let entities: Vec<(Uuid, Box<Entity>)> = self
+            let entities: Vec<(Uuid, Entity)> = self
                 .entities
                 .clone()
                 .into_iter()
@@ -475,7 +475,7 @@ impl<'a> GameState<'a> {
                 .unwrap()
                 .move_forward((0., 1.), dt);
              */
-            let entities: Vec<(Uuid, Box<Entity>)> = self
+            let entities: Vec<(Uuid, Entity)> = self
                 .entities
                 .clone()
                 .into_iter()
@@ -504,7 +504,7 @@ impl<'a> GameState<'a> {
                 .unwrap()
                 .move_forward((-1., 0.), dt);
              */
-            let entities: Vec<(Uuid, Box<Entity>)> = self
+            let entities: Vec<(Uuid, Entity)> = self
                 .entities
                 .clone()
                 .into_iter()
@@ -533,7 +533,7 @@ impl<'a> GameState<'a> {
                 .unwrap()
                 .move_forward((1., 0.), dt);
              */
-            let entities: Vec<(Uuid, Box<Entity>)> = self
+            let entities: Vec<(Uuid, Entity)> = self
                 .entities
                 .clone()
                 .into_iter()
@@ -556,7 +556,7 @@ impl<'a> GameState<'a> {
     }
 
     fn update_collision(&mut self, dt: f64) {
-        let pc_old: Vec<(Uuid, Box<Entity>)> = self
+        let pc_old: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -565,7 +565,7 @@ impl<'a> GameState<'a> {
 
         let old_hitbox = pc_old[0].1.hitbox.as_ref().unwrap().get_rect();
 
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -584,13 +584,13 @@ impl<'a> GameState<'a> {
 
         // collision detection for predict
 
-        let mut pc_predict: Vec<(Uuid, Box<Entity>)> = self
+        let mut pc_predict: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .collect();
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -667,7 +667,7 @@ impl<'a> GameState<'a> {
     fn update_entities(&mut self, dt: f64) {
         // EntityType::PLAYER와 EntityType::MOB에 대한 이동 처리
 
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -689,7 +689,7 @@ impl<'a> GameState<'a> {
         // MOB은 자신과 캐릭터간의 방향 벡터를 계산하여
         // 그만큼 움직이도록 스스로의 방향 벡터를 설정한다.
 
-        let pc_vec: Vec<(Uuid, Box<Entity>)> = self
+        let pc_vec: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -698,7 +698,7 @@ impl<'a> GameState<'a> {
 
         let pc = &pc_vec[0].1;
 
-        let enemies: Vec<(Uuid, Box<Entity>)> = self
+        let enemies: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -833,7 +833,7 @@ impl<'a> States for GameState<'a> {
         let v_y = transform_value(y, REVERSE_HEIGHT_RATIO) + self.cy;
 
         // 가상좌표에 따라 캐릭터의 바라보는 위치를 바꾼다.
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
@@ -882,7 +882,7 @@ impl<'a> States for GameState<'a> {
             */
         }
 
-        let entities: Vec<(Uuid, Box<Entity>)> = self
+        let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
