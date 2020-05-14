@@ -6,8 +6,6 @@ use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
 use std::collections::HashMap;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use uuid::Uuid;
 
 /// 기본 엔터티
