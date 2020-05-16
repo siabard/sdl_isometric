@@ -590,6 +590,8 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .collect();
+
+        
         let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
@@ -659,6 +661,7 @@ impl<'a> GameState<'a> {
                 (uuid, enemy)
             })
             .collect();
+
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
@@ -795,21 +798,19 @@ impl<'a> States for GameState<'a> {
             map.render(canvas, &camera_rect, &self.texture_manager);
         }
         // PLAYER 스프라이트를 WindowCanvas 에 출력..
-        let texture_player_refcell = self
+        let texture_player = self
             .texture_manager
             .textures
             .get(&String::from(character::PLAYER))
             .unwrap();
-        let texture_player = texture_player_refcell.borrow();
 
         // ENEMY 스프라이트를 WindowCanvas 에 출력하도록 함
-        let texture_mob_refcell = self
+        let texture_mob = self
             .texture_manager
             .textures
             .get(&String::from(character::ENEMY))
             .unwrap();
-        let texture_mob = texture_mob_refcell.borrow();
-
+       
         for (_, entity) in self.entities.clone().into_iter() {
             if entity.type_ == EntityType::PLAYER {
                 entity.render(canvas, &camera_rect, &texture_player);

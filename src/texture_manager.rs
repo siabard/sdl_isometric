@@ -10,12 +10,9 @@ use sdl2::video::WindowContext;
 use std::collections::HashMap;
 use std::path::Path;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 /// Texture를 저장하는 객체
 pub struct TextureManager<'a> {
-    pub textures: HashMap<String, Rc<RefCell<Texture<'a>>>>,
+    pub textures: HashMap<String, Texture<'a>>,
 }
 
 impl<'a> TextureManager<'a> {
@@ -38,11 +35,11 @@ impl<'a> TextureManager<'a> {
     ) {
         let texture = texture_creator.load_texture(&path).unwrap();
         self.textures
-            .insert(texture_id, Rc::new(RefCell::new(texture)));
+            .insert(texture_id, texture);
     }
 
     /// Texture 를 추가함
-    pub fn add_texture(&mut self, texture_id: String, texture: Rc<RefCell<Texture<'a>>>) {
+    pub fn add_texture(&mut self, texture_id: String, texture: Texture<'a>) {
         self.textures.insert(texture_id, texture);
     }
 
@@ -95,7 +92,7 @@ impl Sprite {
 
         canvas
             .copy_ex(
-                &texture.borrow(),
+                &texture,
                 Some(self.src),
                 Some(transform_rect(&self.dest, WIDTH_RATIO, HEIGHT_RATIO)),
                 self.rotation,
