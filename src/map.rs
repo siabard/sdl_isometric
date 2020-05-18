@@ -68,8 +68,7 @@ impl Map {
         camera: &Rect,
         texture_manager: &TextureManager,
     ) {
-        let texture_ref = texture_manager.textures.get(&self.map_id).unwrap();
-        let texture = texture_ref.borrow();
+        let texture = texture_manager.textures.get(&self.map_id).unwrap();
         for y in 0..MAP_HEIGHT {
             for x in 0..MAP_WIDTH {
                 // 카메라 좌표계에 출력이 가능할 때만 노출
@@ -86,7 +85,7 @@ impl Map {
                         if let Some(map) = self.blocks.get(map_value) {
                             canvas
                                 .copy_ex(
-                                    &texture,
+                                    texture,
                                     Some(*map),
                                     Some(transform_rect(
                                         &Rect::new(

@@ -3,12 +3,10 @@ use crate::states::*;
 
 use uuid::Uuid;
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
 use std::path::Path;
-use std::rc::Rc;
 
 use sdl2::render::WindowCanvas;
 use sdl2::video::WindowContext;
@@ -54,7 +52,7 @@ impl<'a> InitState<'a> {
 
         let texture_manager = self.texture_manager.as_mut().unwrap();
 
-        texture_manager.add_texture("text".to_owned(), Rc::new(RefCell::new(texture)));
+        texture_manager.add_texture("text".to_owned(), texture);
 
         texture_manager.load_texture(
             "normal_button".to_string(),
