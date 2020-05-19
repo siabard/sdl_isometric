@@ -341,7 +341,7 @@ impl<'a> GameState<'a> {
         map.init_map(0, 0, 0, 16, 16);
         map.init_map(1, 16, 0, 16, 16);
         map.init_map(2, 32, 0, 16, 16);
-        self.map = Some(map);
+        self.map = Some(map.clone());
 
         // 적 위치 초기화
         //self.enemy.x = 300.0;
@@ -369,6 +369,27 @@ impl<'a> GameState<'a> {
             self.entities.insert(uuid, entity);
         }
 
+        // 장애물 등록
+        let mut idx = 0;
+        let mut blocks: Vec<(Uuid, Entity)> = vec![];
+
+        for block in map.map {
+            if block > 0 {
+                let y: f64 = (idx as i32 / MAP_WIDTH) as f64 * 16.0;
+                let x: f64 = (idx as i32 % MAP_WIDTH) as f64 * 16.0;
+
+                println!("idx: {}, x: {}, y: {}", idx, x, y);
+                let mut entity = Entity::new(EntityType::BLOCK);
+                entity.set_movement(x, y, (0, 0), (0., 0.), 0., 0., 0.);
+                entity.set_hitbox(x, y, 0.0, 0.0, 16, 16);
+                blocks.push((Uuid::new_v4(), entity));
+            }
+            idx += 1;
+        }
+
+        for (uuid, entity) in blocks {
+            self.entities.insert(uuid, entity);
+        }
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
 
@@ -675,7 +696,6 @@ impl<'a> GameState<'a> {
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .collect();
 
-        
         let entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
@@ -881,25 +901,27 @@ impl<'a> States for GameState<'a> {
         if let Some(map) = &self.map {
             map.render(canvas, &camera_rect, &self.texture_manager);
         }
-        // PLAYER 스프라이트를 WindowCanvas 에 출력..
+        // PLAYER용 텍스쳐
         let texture_player = self
             .texture_manager
             .textures
             .get(&String::from(character::PLAYER))
             .unwrap();
 
-        // ENEMY 스프라이트를 WindowCanvas 에 출력하도록 함
+        // ENEMY용 텍스쳐
         let texture_mob = self
             .texture_manager
             .textures
             .get(&String::from(character::ENEMY))
             .unwrap();
-       
+
         for (_, entity) in self.entities.clone().into_iter() {
             if entity.type_ == EntityType::PLAYER {
-                entity.render(canvas, &camera_rect, &texture_player);
+                entity.render(canvas, &camera_rect, Some(&texture_player));
             } else if entity.type_ == EntityType::MOB {
-                entity.render(canvas, &camera_rect, &texture_mob);
+                entity.render(canvas, &camera_rect, Some(&texture_mob));
+            } else {
+                entity.render(canvas, &camera_rect, None);
             }
         }
 

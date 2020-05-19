@@ -34,7 +34,7 @@ impl HitboxComponent {
             transform_value(self.h, HEIGHT_RATIO),
         );
 
-        canvas.set_draw_color(Color::RGBA(0, 255, 0, 255));
+        canvas.set_draw_color(Color::RGBA(255, 0, 0, 200));
         canvas.draw_rect(hitbox_transformed_rect).unwrap();
     }
 

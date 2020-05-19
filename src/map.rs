@@ -7,18 +7,22 @@ use sdl2::render::WindowCanvas;
 
 use std::collections::HashMap;
 
-const MAP_WIDTH: i32 = 20;
-const MAP_HEIGHT: i32 = 15;
+/// 맵의 가로 타일 수
+pub const MAP_WIDTH: i32 = 20;
+
+/// 맵의 세로 타일 수
+pub const MAP_HEIGHT: i32 = 15;
 
 /// 지도용 구조체
 /// 지도에는 map용 파일과
 /// 각 map 블럭에 대한 정보를 넣는다.
+#[derive(Clone)]
 pub struct Map {
     map_id: String,
     blocks: HashMap<i32, Rect>,
-    map: Vec<i32>,
-    cell_width: u32,
-    cell_height: u32,
+    pub map: Vec<i32>,
+    pub cell_width: u32,
+    pub cell_height: u32,
 }
 
 impl Map {
@@ -41,7 +45,7 @@ impl Map {
         // 1 -> grass
         // 2 -> sand
         self.map = vec![
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 1, 2, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 1, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

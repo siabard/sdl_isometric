@@ -104,14 +104,14 @@ impl Entity {
         }
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
+    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: Option<&Texture>) {
         if let Some(movement) = self.movement.as_ref() {
             let direction = facing_to_direction(movement.get_facing());
             if let Some(animation) = self.animation.get(&direction) {
                 if let Some(attack) = self.attack.as_ref() {
                     attack.render(canvas, camera, animation);
                 }
-                animation.render(canvas, camera, texture);
+                animation.render(canvas, camera, texture.unwrap());
             }
 
             if let Some(hitbox) = self.hitbox.as_ref() {
