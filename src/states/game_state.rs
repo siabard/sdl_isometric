@@ -52,7 +52,7 @@ impl<'a> GameState<'a> {
 
         entities.insert(entity.id, entity);
 
-        for _ in 0..3 {
+        for _ in 0..2 {
             let mut rng = rand::thread_rng();
             let x: f64 = rng.gen::<f64>() * 100.0 - 200.0;
             let y: f64 = rng.gen::<f64>() * 100.0 - 200.0;
@@ -378,7 +378,6 @@ impl<'a> GameState<'a> {
                 let y: f64 = (idx as i32 / MAP_WIDTH) as f64 * 16.0;
                 let x: f64 = (idx as i32 % MAP_WIDTH) as f64 * 16.0;
 
-                println!("idx: {}, x: {}, y: {}", idx, x, y);
                 let mut entity = Entity::new(EntityType::BLOCK);
                 entity.set_movement(x, y, (0, 0), (0., 0.), 0., 0., 0.);
                 entity.set_hitbox(x, y, 0.0, 0.0, 16, 16);
@@ -390,6 +389,7 @@ impl<'a> GameState<'a> {
         for (uuid, entity) in blocks {
             self.entities.insert(uuid, entity);
         }
+
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
 
@@ -419,38 +419,42 @@ impl<'a> GameState<'a> {
         let ux = player[0].1.movement.as_ref().unwrap().get_pos_x() as i32;
         let uy = player[0].1.movement.as_ref().unwrap().get_pos_y() as i32;
 
-        let width_margin = (self.cw as f32 * 0.1) as u32;
-        let height_margin = (self.ch as f32 * 0.1) as u32;
-        let left_limit = self.cx as u32 + width_margin;
-        let right_limit = self.cx as u32 + self.cw - width_margin;
-        let top_limit = self.cy as u32 + height_margin;
-        let bottom_limit = self.cy as u32 + self.ch - height_margin as u32;
+        let width_margin = (self.cw as f32 * 0.2) as u32; // 카메라 좌우측 여유 공간
+        let height_margin = (self.ch as f32 * 0.2) as u32; // 카메라 상하측 여유 공간
 
-        if ux < left_limit as i32 {
+        // 카메라는 사용자를 쫓아간다.
+        // Follow mode
+
+        let rx = ux - self.cx;
+        let ry = uy - self.cy;
+
+        if rx < width_margin as i32 {
             // cx를 ux 위치가 left_limit인 곳까지 이동한다.
             self.cx = ux - width_margin as i32;
             if self.cx < 0 {
                 self.cx = 0;
             }
-        } else if ux > right_limit as i32 {
+        } else if rx > (self.cw - width_margin) as i32 {
             // cx를 ux 위치가 right_limit인 곳까지 이동한다.
-            self.cx = ux - self.cw as i32 + width_margin as i32;
+            let dx = width_margin as i32 - (self.cx + self.cw as i32 - ux);
+            self.cx += dx;
             if self.cx as u32 + self.cw > WORLD_WIDTH {
-                self.cx = (WORLD_WIDTH - width_margin) as i32;
+                self.cx = (WORLD_WIDTH - self.cw) as i32;
             }
         }
 
-        if uy < top_limit as i32 {
-            // cx를 ux 위치가 left_limit인 곳까지 이동한다.
+        if ry < height_margin as i32 {
+            // cy를 uy 위치가 top_limit인 곳까지 이동한다.
             self.cy = uy - height_margin as i32;
             if self.cy < 0 {
                 self.cy = 0;
             }
-        } else if uy > bottom_limit as i32 {
-            // cx를 ux 위치가 right_limit인 곳까지 이동한다.
-            self.cy = uy - self.ch as i32 + height_margin as i32;
+        } else if ry > (self.ch - height_margin) as i32 {
+            // cy를 uy 위치가 bottom_limit인 곳까지 이동한다.
+            let dy = height_margin as i32 - (self.cy + self.ch as i32 - uy);
+            self.cy += dy;
             if self.cy as u32 + self.ch > WORLD_HEIGHT {
-                self.cy = (WORLD_HEIGHT - height_margin) as i32;
+                self.cy = (WORLD_HEIGHT - self.ch) as i32;
             }
         }
     }
@@ -462,10 +466,10 @@ impl<'a> GameState<'a> {
             //self.pc.move_forward((0., -1.), dt);
             /*
             self.pc2
-                .movement
-                .as_mut()
-                .unwrap()
-                .move_forward((0., -1.), dt);
+            .movement
+            .as_mut()
+            .unwrap()
+            .move_forward((0., -1.), dt);
              */
             let entities: Vec<(Uuid, Entity)> = self
                 .entities
@@ -491,10 +495,10 @@ impl<'a> GameState<'a> {
             //self.pc.move_forward((0., 1.), dt);
             /*
             self.pc2
-                .movement
-                .as_mut()
-                .unwrap()
-                .move_forward((0., 1.), dt);
+            .movement
+            .as_mut()
+            .unwrap()
+            .move_forward((0., 1.), dt);
              */
             let entities: Vec<(Uuid, Entity)> = self
                 .entities
@@ -520,10 +524,10 @@ impl<'a> GameState<'a> {
             //self.pc.move_forward((-1., 0.), dt);
             /*
             self.pc2
-                .movement
-                .as_mut()
-                .unwrap()
-                .move_forward((-1., 0.), dt);
+            .movement
+            .as_mut()
+            .unwrap()
+            .move_forward((-1., 0.), dt);
              */
             let entities: Vec<(Uuid, Entity)> = self
                 .entities
@@ -549,10 +553,10 @@ impl<'a> GameState<'a> {
             //self.pc.move_forward((1., 0.), dt);
             /*
             self.pc2
-                .movement
-                .as_mut()
-                .unwrap()
-                .move_forward((1., 0.), dt);
+            .movement
+            .as_mut()
+            .unwrap()
+            .move_forward((1., 0.), dt);
              */
             let entities: Vec<(Uuid, Entity)> = self
                 .entities
@@ -609,37 +613,36 @@ impl<'a> GameState<'a> {
                         let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
 
                         let directions = detect_collision(&entity_hitbox, &other_hitbox);
-
-                        // 예측데이터를 기반으로 Y만 변경했을 때 충돌여부
-
-                        let predict_y =
-                            entity.get_predict_y(dt) + entity.hitbox.as_ref().unwrap().hy;
-
-                        let predict_hitbox_y_only = Rect::new(
-                            entity_hitbox.x,
-                            predict_y as i32,
-                            entity_hitbox.width(),
-                            entity_hitbox.height(),
-                        );
-
-                        let directions_y_only =
-                            detect_collision(&predict_hitbox_y_only, &other_hitbox);
-
-                        // 예측데이터를 기반으로 X만 변경했을 때 충돌여부
-                        let predict_x =
-                            entity.get_predict_x(dt) + entity.hitbox.as_ref().unwrap().hx;
-
-                        let predict_hitbox_x_only = Rect::new(
-                            predict_x as i32,
-                            entity_hitbox.y,
-                            entity_hitbox.width(),
-                            entity_hitbox.height(),
-                        );
-
-                        let directions_x_only =
-                            detect_collision(&predict_hitbox_x_only, &other_hitbox);
-
                         if directions {
+                            // 예측데이터를 기반으로 Y만 변경했을 때 충돌여부
+
+                            let predict_y =
+                                entity.get_predict_y(dt) + entity.hitbox.as_ref().unwrap().hy;
+
+                            let predict_hitbox_y_only = Rect::new(
+                                entity_hitbox.x,
+                                predict_y as i32,
+                                entity_hitbox.width(),
+                                entity_hitbox.height(),
+                            );
+
+                            let directions_y_only =
+                                detect_collision(&predict_hitbox_y_only, &other_hitbox);
+
+                            // 예측데이터를 기반으로 X만 변경했을 때 충돌여부
+                            let predict_x =
+                                entity.get_predict_x(dt) + entity.hitbox.as_ref().unwrap().hx;
+
+                            let predict_hitbox_x_only = Rect::new(
+                                predict_x as i32,
+                                entity_hitbox.y,
+                                entity_hitbox.width(),
+                                entity_hitbox.height(),
+                            );
+
+                            let directions_x_only =
+                                detect_collision(&predict_hitbox_x_only, &other_hitbox);
+
                             if directions_y_only {
                                 entity.movement.as_mut().unwrap().reset_velocity_y();
                             }
@@ -982,11 +985,11 @@ impl<'a> States for GameState<'a> {
         if !new_buttons.is_empty() || !old_buttons.is_empty() {
             // 버튼이 클릭되거나, 놓여짐..
             /*
-            println!(
+                println!(
                 "X = {:?}, Y = {:?} : {:?} -> {:?}",
                 v_x, v_y, new_buttons, old_buttons
             );
-            */
+                 */
         }
 
         let entities: Vec<(Uuid, Entity)> = self

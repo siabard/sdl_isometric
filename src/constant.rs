@@ -13,10 +13,10 @@ pub const VIRTUAL_HEIGHT: u32 = 300;
 
 /// 게임의 모든 텍스쳐는 아래 좌표계에 맞추어 보이게 된다.
 /// 게임이 진행되는 전체 영역의 가로 크기
-pub const WORLD_WIDTH: u32 = 4000;
+pub const WORLD_WIDTH: u32 = 600;
 
-/// 게임이 진행되는 전체 영역의 가로 크기
-pub const WORLD_HEIGHT: u32 = 3000;
+/// 게임이 진행되는 전체 영역의 새로 크기
+pub const WORLD_HEIGHT: u32 = 450;
 
 /// 물리 화면과 VIEWPORT 화면과의 확대 축소를 위한 가로 비율
 pub const WIDTH_RATIO: f32 = SCREEN_WIDTH as f32 / VIRTUAL_WIDTH as f32;

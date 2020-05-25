@@ -14,7 +14,7 @@ use uuid::Uuid;
 /// movement 에는 해당하는 특성을 넣어준다.
 /// 이걸 SPECS로 하면 더 쉽겠지?
 /// animation_component
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Entity {
     pub type_: EntityType,
     pub id: Uuid,

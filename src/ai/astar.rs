@@ -133,7 +133,6 @@ impl AStar {
         }
 
         // Find the path
-        println!("DONE!");
         path
     }
 
