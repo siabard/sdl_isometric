@@ -74,6 +74,7 @@ pub mod gui;
 pub mod map;
 pub mod states;
 pub mod texture_manager;
+pub mod quadtree;
 
 pub use states::game_state::*;
 pub use states::init_state::*;

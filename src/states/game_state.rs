@@ -2,6 +2,7 @@ use crate::components::*;
 use crate::constant::*;
 use crate::entities::*;
 use crate::map::*;
+use crate::quadtree::*;
 use crate::states::*;
 
 use std::collections::HashMap;
@@ -52,16 +53,17 @@ impl<'a> GameState<'a> {
 
         entities.insert(entity.id, entity);
 
-        for _ in 0..2 {
+        for i in 0..200 {
+            println!("enemy # {}", i);
             let mut rng = rand::thread_rng();
-            let x: f64 = rng.gen::<f64>() * 100.0 - 200.0;
-            let y: f64 = rng.gen::<f64>() * 100.0 - 200.0;
-            let speed: f64 = rng.gen::<f64>() * 80.0 - 100.0;
+            let x: f64 = rng.gen::<f64>() * 100.0;
+            let y: f64 = rng.gen::<f64>() * 100.0;
+            let speed: f64 = rng.gen::<f64>() * 40.0 + 20.0;
             let mut enemy = Entity::new(EntityType::MOB);
 
             enemy.set_movement(
-                100.0 + x,
-                100.0 + y,
+                200.0 + x,
+                200.0 + y,
                 (0, 0),
                 (0.0, 0.0),
                 100.0 + speed,
@@ -71,6 +73,8 @@ impl<'a> GameState<'a> {
 
             entities.insert(enemy.id, enemy);
         }
+
+        println!("{:?}", entities);
 
         GameState {
             texture_manager,
@@ -366,7 +370,7 @@ impl<'a> GameState<'a> {
             .collect();
 
         for (uuid, entity) in entities {
-            self.entities.insert(uuid, entity);
+            //            self.entities.insert(uuid, entity);
         }
 
         // 장애물 등록
@@ -590,6 +594,17 @@ impl<'a> GameState<'a> {
             .map(|(uuid, entity)| (uuid, entity))
             .collect();
 
+        // 이동한 예측 데이터를 전부 Quadtree에 넣는다.
+        let mut quadtree = QuadTree::new(
+            Rectangle::new(0.0, 0.0, WORLD_WIDTH as f64, WORLD_HEIGHT as f64),
+            4,
+        );
+        for (p_uuid, p_entity) in &previous_entities {
+            let x = p_entity.movement.as_ref().unwrap().x;
+            let y = p_entity.movement.as_ref().unwrap().y;
+            quadtree.insert(Point::new(x as f64, y as f64, *p_uuid));
+        }
+
         // 모든 Moveable 오브젝트를 가져온다.
         // 해당 오브젝트의 예상 이동위치를 계산한다.
         let movable_entities: Vec<(Uuid, Entity)> = self
@@ -606,9 +621,24 @@ impl<'a> GameState<'a> {
                 // 필요한 액션을 취한다.
 
                 let entity_hitbox = entity.hitbox.as_ref().unwrap().get_rect();
+
+                // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
+                // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
+                let range: Rectangle = Rectangle::new(
+                    entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
+                    entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
+                    entity_hitbox.w as f64 * 4.0,
+                    entity_hitbox.h as f64 * 4.0,
+                );
+
+                let candidates = quadtree.query(range);
+                let uuid_candidates: Vec<uuid::Uuid> =
+                    candidates.into_iter().map(|point| point.userdata).collect();
+
                 for (oth_uuid, others) in &previous_entities {
                     // 자기 자신과는 비교하지않는다.
-                    if uuid != *oth_uuid {
+                    // quadtree에 포함된 항목과만 충볼판정한다.
+                    if uuid != *oth_uuid && uuid_candidates.contains(oth_uuid) {
                         // hitbox간 충돌여부 확인
                         let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
 
