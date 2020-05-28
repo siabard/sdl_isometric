@@ -53,7 +53,7 @@ impl<'a> GameState<'a> {
 
         entities.insert(entity.id, entity);
 
-        for i in 0..300 {
+        for _ in 0..10 {
             let mut rng = rand::thread_rng();
             let x: f64 = rng.gen::<f64>() * 300.0;
             let y: f64 = rng.gen::<f64>() * 200.0;
@@ -581,7 +581,7 @@ impl<'a> GameState<'a> {
         }
     }
 
-    fn update_collision_new(&mut self, dt: f64) {
+    fn update_collision(&mut self, dt: f64) {
         // 원 ENTITY위치를 보관한다.
         let previous_entities: Vec<(Uuid, Entity)> = self
             .entities
@@ -699,117 +699,23 @@ impl<'a> GameState<'a> {
         }
     }
 
-    fn update_collision(&mut self, dt: f64) {
-        // 원 ENTITY위치를 보관한다.
-        let previous_entities: Vec<(Uuid, Entity)> = self
+    fn update_entities(&mut self, dt: f64) {
+        // EntityType::PLAYER와 EntityType::MOB에 대한 이동 처리
+
+        // 적 ENTITY의 공격 시도를 위한 시야 변경
+        let player: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.movement.as_ref().is_some())
-            .map(|(uuid, entity)| (uuid, entity))
-            .collect();
-
-        // Quadtree를 생성하고, entity 아이디를 포함한 값을 넣는다.
-        let mut quadtree = QuadTree::new(
-            Rectangle::new(0.0, 0.0, WORLD_WIDTH as f64, WORLD_HEIGHT as f64),
-            4,
-        );
-        for (p_uuid, p_entity) in &previous_entities {
-            let x = p_entity.movement.as_ref().unwrap().x;
-            let y = p_entity.movement.as_ref().unwrap().y;
-            quadtree.insert(Point::new(x as f64, y as f64, *p_uuid));
-        }
-
-        // 모든 Moveable 오브젝트를 가져온다.
-        // 해당 오브젝트의 예상 이동위치를 계산한다.
-        let movable_entities: Vec<(Uuid, Entity)> = self
-            .entities
-            .clone()
-            .into_iter()
-            .filter(|(_, entity)| entity.movement.as_ref().is_some())
+            .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                // 예상 위치로 이동시킴.
-                entity.update_predict(dt);
-
-                // Movable 오브젝트와 기존 오브젝트와의 충돌을 판정하고
-                // 예상 위치가 현재 위치와 겹친 시점에 대한 판단을 통해서
-                // 필요한 액션을 취한다.
-
-                let entity_hitbox = entity.hitbox.as_ref().unwrap().get_rect();
-
-                // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
-                // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
-                let range: Rectangle = Rectangle::new(
-                    entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
-                    entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
-                    entity_hitbox.w as f64 * 4.0,
-                    entity_hitbox.h as f64 * 4.0,
-                );
-
-                let candidates = quadtree.query(range);
-                let uuid_candidates: Vec<uuid::Uuid> =
-                    candidates.into_iter().map(|point| point.userdata).collect();
-
-                for (oth_uuid, others) in &previous_entities {
-                    // 자기 자신과는 비교하지않는다.
-                    // quadtree에 포함된 항목과만 충볼판정한다.
-                    if uuid != *oth_uuid && uuid_candidates.contains(oth_uuid) {
-                        // hitbox간 충돌여부 확인
-                        let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
-
-                        let directions = detect_collision(&entity_hitbox, &other_hitbox);
-                        if directions {
-                            // 예측데이터를 기반으로 Y만 변경했을 때 충돌여부
-
-                            let predict_y =
-                                entity.get_predict_y(dt) + entity.hitbox.as_ref().unwrap().hy;
-
-                            let predict_hitbox_y_only = Rect::new(
-                                entity_hitbox.x,
-                                predict_y as i32,
-                                entity_hitbox.width(),
-                                entity_hitbox.height(),
-                            );
-
-                            let directions_y_only =
-                                detect_collision(&predict_hitbox_y_only, &other_hitbox);
-
-                            // 예측데이터를 기반으로 X만 변경했을 때 충돌여부
-                            let predict_x =
-                                entity.get_predict_x(dt) + entity.hitbox.as_ref().unwrap().hx;
-
-                            let predict_hitbox_x_only = Rect::new(
-                                predict_x as i32,
-                                entity_hitbox.y,
-                                entity_hitbox.width(),
-                                entity_hitbox.height(),
-                            );
-
-                            let directions_x_only =
-                                detect_collision(&predict_hitbox_x_only, &other_hitbox);
-
-                            if directions_y_only {
-                                entity.movement.as_mut().unwrap().reset_velocity_y();
-                            }
-
-                            if directions_x_only {
-                                entity.movement.as_mut().unwrap().reset_velocity_x();
-                            }
-                        }
-                    }
-                }
-
+                entity.update(dt);
                 (uuid, entity)
             })
             .collect();
 
-        for (uuid, entity) in movable_entities {
-            self.entities.insert(uuid, entity);
-        }
-    }
-
-    fn update_entities(&mut self, dt: f64) {
-        // EntityType::PLAYER와 EntityType::MOB에 대한 이동 처리
+        let px = (player[0].1).movement.as_ref().unwrap().x;
+        let py = (player[0].1).movement.as_ref().unwrap().y;
 
         let entities: Vec<(Uuid, Entity)> = self
             .entities
@@ -820,6 +726,20 @@ impl<'a> GameState<'a> {
             })
             .map(|(uuid, mut entity)| {
                 entity.update(dt);
+
+                if entity.type_ == EntityType::MOB {
+                    // 공격 선정
+                    let tmps = entity.clone();
+                    let movement = tmps.movement.as_ref().unwrap();
+                    let direction = facing_to_direction(movement.get_facing());
+                    let animation = tmps.animation.get(&direction).unwrap();
+
+                    entity
+                        .attack
+                        .as_mut()
+                        .unwrap()
+                        .set_deg((px as f64, py as f64), animation);
+                }
                 (uuid, entity)
             })
             .collect();
@@ -921,7 +841,7 @@ impl<'a> States for GameState<'a> {
         self.update_enemy_ai(dt);
 
         // 캐릭터간 충돌
-        self.update_collision_new(dt);
+        self.update_collision(dt);
 
         // 캐릭터 실제 업데이트 처리
         self.update_entities(dt);
