@@ -9,6 +9,8 @@
 /// Data Structure : Point
 use uuid::Uuid;
 
+use crate::*;
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Point {
     x: f64,
@@ -20,15 +22,6 @@ impl Point {
     pub fn new(x: f64, y: f64, userdata: Uuid) -> Point {
         Point { x, y, userdata }
     }
-}
-
-/// Data Structure : Rectangle
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Rectangle {
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
 }
 
 impl Rectangle {

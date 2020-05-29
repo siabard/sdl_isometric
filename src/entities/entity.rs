@@ -36,7 +36,7 @@ impl Entity {
         }
     }
 
-    pub fn set_hitbox(&mut self, x: f64, y: f64, hx: f64, hy: f64, w: u32, h: u32) {
+    pub fn set_hitbox(&mut self, x: f64, y: f64, hx: f64, hy: f64, w: f64, h: f64) {
         self.hitbox = Some(HitboxComponent::new(x, y, hx, hy, w, h));
     }
 

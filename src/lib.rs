@@ -17,8 +17,17 @@ use num_traits::int::PrimInt;
 
 use sdl2::rect::Rect;
 
-///
+///2차원 배열
 type Vector2<V> = (V, V);
+
+/// Data Structure : Rectangle
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Rectangle {
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+}
 
 /// 방향에 대한 enum
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -72,26 +81,23 @@ pub fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
 }
 
 /// collision detection (AABB)
-pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
-    p1.x < p2.x + p2.width() as i32
-        && p1.x + p1.width() as i32 > p2.x
-        && p1.y < p2.y + p2.height() as i32
-        && p1.y + p1.height() as i32 > p2.y
+pub fn detect_collision(p1: &Rectangle, p2: &Rectangle) -> bool {
+    p1.x < p2.x + p2.w && p1.x + p1.w > p2.x && p1.y < p2.y + p2.h && p1.y + p1.h > p2.y
 }
 
 /// 충돌이 일어날 때 이동벡터를 계산한다.
-pub fn calc_vector(m1: &Rect, v1: Vector2<f64>, m2: &Rect) -> Vector2<f64> {
+pub fn calc_vector(m1: &Rectangle, v1: Vector2<f64>, m2: &Rectangle) -> Vector2<f64> {
     // m1과 m2의 x, y접점의 길이를 구한다.
     let dx = if m1.x < m2.x {
-        m1.x + m1.width() as i32 - m2.x
+        m1.x + m1.w - m2.x
     } else {
-        m2.x + m2.width() as i32 - m1.x
+        m2.x + m2.w - m1.x
     };
 
     let dy = if m1.y < m2.y {
-        m1.y + m1.height() as i32 - m2.y
+        m1.y + m1.h - m2.y
     } else {
-        m2.y + m2.height() as i32 - m1.y
+        m2.y + m2.h - m1.y
     };
 
     // 접한면이 큰 방향으로 Slide한다.
@@ -121,5 +127,6 @@ pub fn calc_vector(m1: &Rect, v1: Vector2<f64>, m2: &Rect) -> Vector2<f64> {
 
     let result = (v1.0 - anti_vector.0 * dot, v1.1 - anti_vector.1 * dot);
 
+    dbg!(v1, anti_vector, result);
     result
 }

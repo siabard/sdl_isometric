@@ -53,7 +53,7 @@ impl<'a> GameState<'a> {
 
         entities.insert(entity.id, entity);
 
-        for _ in 0..30 {
+        for _ in 0..1 {
             let mut rng = rand::thread_rng();
             let x: f64 = rng.gen::<f64>() * 300.0;
             let y: f64 = rng.gen::<f64>() * 200.0;
@@ -304,7 +304,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
+                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12.0, 16.0);
                 (uuid, entity)
             })
             .collect();
@@ -319,7 +319,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::MOB)
             .map(|(uuid, mut entity)| {
-                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
+                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12.0, 16.0);
                 (uuid, entity)
             })
             .collect();
@@ -381,7 +381,7 @@ impl<'a> GameState<'a> {
 
                 let mut entity = Entity::new(EntityType::BLOCK);
                 entity.set_movement(x, y, (0, 0), (0., 0.), 0., 0., 0.);
-                entity.set_hitbox(x, y, 0.0, 0.0, 16, 16);
+                entity.set_hitbox(x, y, 0.0, 0.0, 16.0, 16.0);
                 blocks.push((Uuid::new_v4(), entity));
             }
             idx += 1;
@@ -599,7 +599,7 @@ impl<'a> GameState<'a> {
         for (p_uuid, p_entity) in &previous_entities {
             let x = p_entity.movement.as_ref().unwrap().x;
             let y = p_entity.movement.as_ref().unwrap().y;
-            quadtree.insert(Point::new(x as f64, y as f64, *p_uuid));
+            quadtree.insert(Point::new(x, y, *p_uuid));
         }
 
         // 모든 Moveable 오브젝트를 가져온다.
@@ -658,6 +658,7 @@ impl<'a> GameState<'a> {
                         let directions = detect_collision(&entity_hitbox, &other_hitbox);
                         if directions {
                             // 예측데이터를 sliding 시킨다.
+                            dbg!(entity.type_);
                             let m1 = entity.hitbox.as_ref().unwrap();
                             let v1 = entity.movement.as_ref().unwrap().velocity;
                             let new_v = calc_vector(&m1.get_rect(), v1, &other_hitbox);
@@ -757,12 +758,12 @@ impl<'a> GameState<'a> {
                             let predict_y =
                                 entity.get_predict_y(dt) + entity.hitbox.as_ref().unwrap().hy;
 
-                            let predict_hitbox_y_only = Rect::new(
-                                entity_hitbox.x,
-                                predict_y as i32,
-                                entity_hitbox.width(),
-                                entity_hitbox.height(),
-                            );
+                            let predict_hitbox_y_only = Rectangle {
+                                x: entity_hitbox.x,
+                                y: predict_y,
+                                w: entity_hitbox.w,
+                                h: entity_hitbox.h,
+                            };
 
                             let directions_y_only =
                                 detect_collision(&predict_hitbox_y_only, &other_hitbox);
@@ -771,12 +772,12 @@ impl<'a> GameState<'a> {
                             let predict_x =
                                 entity.get_predict_x(dt) + entity.hitbox.as_ref().unwrap().hx;
 
-                            let predict_hitbox_x_only = Rect::new(
-                                predict_x as i32,
-                                entity_hitbox.y,
-                                entity_hitbox.width(),
-                                entity_hitbox.height(),
-                            );
+                            let predict_hitbox_x_only = Rectangle {
+                                x: predict_x,
+                                y: entity_hitbox.y,
+                                w: entity_hitbox.w,
+                                h: entity_hitbox.h,
+                            };
 
                             let directions_x_only =
                                 detect_collision(&predict_hitbox_x_only, &other_hitbox);
