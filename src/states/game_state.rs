@@ -581,13 +581,16 @@ impl<'a> GameState<'a> {
         }
     }
     fn update_collision_slide(&mut self, dt: f64) {
-        // 원 ENTITY위치를 보관한다.
+        // 예상 위치로 이동시킨다.
         let previous_entities: Vec<(Uuid, Entity)> = self
             .entities
             .clone()
             .into_iter()
             .filter(|(_, entity)| entity.movement.as_ref().is_some())
-            .map(|(uuid, entity)| (uuid, entity))
+            .map(|(uuid, mut entity)| {
+                entity.update_predict(dt);
+                (uuid, entity)
+            })
             .collect();
 
         // Quadtree를 생성하고, entity 아이디를 포함한 값을 넣는다.
@@ -604,15 +607,11 @@ impl<'a> GameState<'a> {
 
         // 모든 Moveable 오브젝트를 가져온다.
         // 해당 오브젝트의 예상 이동위치를 계산한다.
-        let movable_entities: Vec<(Uuid, Entity)> = self
-            .entities
+        let movable_entities: Vec<(Uuid, Entity)> = previous_entities
             .clone()
             .into_iter()
             .filter(|(_, entity)| entity.movement.as_ref().is_some())
             .map(|(uuid, mut entity)| {
-                // 예상 위치로 이동시킴.
-                entity.update_predict(dt);
-
                 // Movable 오브젝트와 기존 오브젝트와의 충돌을 판정하고
                 // 예상 위치가 현재 위치와 겹친 시점에 대한 판단을 통해서
                 // 필요한 액션을 취한다.
