@@ -7,6 +7,8 @@ use sdl_isometric::states::*;
 use sdl_isometric::*;
 use std::collections::HashSet;
 
+use std::time::Duration;
+
 fn main() -> Result<(), String> {
     let sdl_context = sdl2::init().expect("ERROR on SDL CONTEXT");
 
@@ -128,6 +130,8 @@ fn main() -> Result<(), String> {
             }
             _ => (),
         }
+        // 1/60 초 스킵한다.
+        //::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         now = timer_subsystem.ticks();
     }
 

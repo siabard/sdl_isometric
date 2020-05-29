@@ -34,8 +34,7 @@ impl<'a> TextureManager<'a> {
         path: &Path,
     ) {
         let texture = texture_creator.load_texture(&path).unwrap();
-        self.textures
-            .insert(texture_id, texture);
+        self.textures.insert(texture_id, texture);
     }
 
     /// Texture 를 추가함

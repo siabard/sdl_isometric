@@ -1,3 +1,17 @@
+pub mod ai;
+pub mod animation;
+pub mod components;
+pub mod constant;
+pub mod entities;
+pub mod gui;
+pub mod map;
+pub mod quadtree;
+pub mod states;
+pub mod texture_manager;
+
+pub use states::game_state::*;
+pub use states::init_state::*;
+
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::int::PrimInt;
 
@@ -57,7 +71,7 @@ pub fn transform_rect(src: &Rect, ratio_w: f32, ratio_h: f32) -> Rect {
     )
 }
 
-/// collision detection
+/// collision detection (AABB)
 pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
     p1.x < p2.x + p2.width() as i32
         && p1.x + p1.width() as i32 > p2.x
@@ -65,16 +79,47 @@ pub fn detect_collision(p1: &Rect, p2: &Rect) -> bool {
         && p1.y + p1.height() as i32 > p2.y
 }
 
-pub mod ai;
-pub mod animation;
-pub mod components;
-pub mod constant;
-pub mod entities;
-pub mod gui;
-pub mod map;
-pub mod states;
-pub mod texture_manager;
-pub mod quadtree;
+/// 충돌이 일어날 때 이동벡터를 계산한다.
+pub fn calc_vector(m1: &Rect, v1: Vector2<f64>, m2: &Rect) -> Vector2<f64> {
+    // m1과 m2의 x, y접점의 길이를 구한다.
+    let dx = if m1.x < m2.x {
+        m1.x + m1.width() as i32 - m2.x
+    } else {
+        m2.x + m2.width() as i32 - m1.x
+    };
 
-pub use states::game_state::*;
-pub use states::init_state::*;
+    let dy = if m1.y < m2.y {
+        m1.y + m1.height() as i32 - m2.y
+    } else {
+        m2.y + m2.height() as i32 - m1.y
+    };
+
+    // 접한면이 큰 방향으로 Slide한다.
+    // 만약 dx가 크다면 slide는 좌우로 진행된다.
+    let anti_vector = if dx > dy {
+        // 위 아니면, 아래
+        if m1.y > m2.y {
+            // m2는 m1보다 위에 있으므로 아랫면에 충돌한 것이다.
+            (0.0, 1.0)
+        } else {
+            // 위
+            (0.0, -1.0)
+        }
+    } else if dx < dy {
+        // 왼쪽 아래면, 오른쪽
+        if m1.x > m2.x {
+            (1.0, 0.0)
+        } else {
+            (-1.0, 0.0)
+        }
+    } else {
+        (0.0, 0.0)
+    };
+
+    // dp = dp - N *dot(dp, N)
+    let dot = v1.0 * anti_vector.0 + v1.1 * anti_vector.1;
+
+    let result = (v1.0 - anti_vector.0 * dot, v1.1 - anti_vector.1 * dot);
+
+    result
+}

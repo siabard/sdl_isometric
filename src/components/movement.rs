@@ -140,6 +140,18 @@ impl MovementComponent {
         self.velocity.1 = 0.0;
         self.py = self.y;
     }
+    /// velocity를 재설정
+    pub fn set_velocity(&mut self, v: Vector2<f64>) {
+        self.velocity.0 = v.0;
+        if v.0 == 0.0 {
+            self.px = self.x;
+        }
+
+        self.velocity.1 = v.1;
+        if v.1 == 0.0 {
+            self.py = self.y;
+        }
+    }
 
     /// 캐릭터의 이동 벡터를 설정한다.
     pub fn move_forward(&mut self, direction: (f64, f64), dt: f64) {

@@ -53,11 +53,11 @@ impl<'a> GameState<'a> {
 
         entities.insert(entity.id, entity);
 
-        for _ in 0..10 {
+        for _ in 0..30 {
             let mut rng = rand::thread_rng();
             let x: f64 = rng.gen::<f64>() * 300.0;
             let y: f64 = rng.gen::<f64>() * 200.0;
-            let speed: f64 = rng.gen::<f64>() * 40.0 + 20.0;
+            let speed: f64 = rng.gen::<f64>() * 80.0 + 20.0;
             let mut enemy = Entity::new(EntityType::MOB);
 
             enemy.set_movement(
@@ -65,7 +65,7 @@ impl<'a> GameState<'a> {
                 100.0 + y,
                 (0, 0),
                 (0.0, 0.0),
-                100.0 + speed,
+                speed,
                 2000.0,
                 300.0,
             );
@@ -580,6 +580,100 @@ impl<'a> GameState<'a> {
             }
         }
     }
+    fn update_collision_slide(&mut self, dt: f64) {
+        // 원 ENTITY위치를 보관한다.
+        let previous_entities: Vec<(Uuid, Entity)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.movement.as_ref().is_some())
+            .map(|(uuid, entity)| (uuid, entity))
+            .collect();
+
+        // Quadtree를 생성하고, entity 아이디를 포함한 값을 넣는다.
+        let mut quadtree = QuadTree::new(
+            Rectangle::new(0.0, 0.0, WORLD_WIDTH as f64, WORLD_HEIGHT as f64),
+            4,
+        );
+
+        for (p_uuid, p_entity) in &previous_entities {
+            let x = p_entity.movement.as_ref().unwrap().x;
+            let y = p_entity.movement.as_ref().unwrap().y;
+            quadtree.insert(Point::new(x as f64, y as f64, *p_uuid));
+        }
+
+        // 모든 Moveable 오브젝트를 가져온다.
+        // 해당 오브젝트의 예상 이동위치를 계산한다.
+        let movable_entities: Vec<(Uuid, Entity)> = self
+            .entities
+            .clone()
+            .into_iter()
+            .filter(|(_, entity)| entity.movement.as_ref().is_some())
+            .map(|(uuid, mut entity)| {
+                // 예상 위치로 이동시킴.
+                entity.update_predict(dt);
+
+                // Movable 오브젝트와 기존 오브젝트와의 충돌을 판정하고
+                // 예상 위치가 현재 위치와 겹친 시점에 대한 판단을 통해서
+                // 필요한 액션을 취한다.
+
+                let entity_hitbox = entity.hitbox.as_ref().unwrap().get_rect();
+
+                // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
+                // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
+                let range: Rectangle = Rectangle::new(
+                    entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
+                    entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
+                    entity_hitbox.w as f64 * 4.0,
+                    entity_hitbox.h as f64 * 4.0,
+                );
+
+                let candidates = quadtree.query(range);
+
+                let mut hash_uuid: HashMap<uuid::Uuid, bool> = HashMap::new();
+
+                for point in &candidates {
+                    hash_uuid.insert(point.userdata, true);
+                }
+
+                let uuid_candidates: Vec<uuid::Uuid> = candidates
+                    .into_iter()
+                    .map(|point| point.userdata)
+                    .collect::<Vec<uuid::Uuid>>();
+
+                for (oth_uuid, others) in &previous_entities {
+                    // 자기 자신과는 비교하지않는다.
+                    // quadtree에 포함된 항목과만 충돌판정한다.
+                    // 이미 움직이지않는 케이스는 판정하지않는다. (고정셀로 취급)
+                    let (vx, vy) = entity.movement.as_ref().unwrap().velocity;
+                    let speed = vx * vx + vy * vy;
+
+                    if uuid != *oth_uuid
+                        && *hash_uuid.get(oth_uuid).unwrap_or(&false)
+                        && speed > 0.0
+                    {
+                        // hitbox간 충돌여부 확인
+                        let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
+
+                        let directions = detect_collision(&entity_hitbox, &other_hitbox);
+                        if directions {
+                            // 예측데이터를 sliding 시킨다.
+                            let m1 = entity.hitbox.as_ref().unwrap();
+                            let v1 = entity.movement.as_ref().unwrap().velocity;
+                            let new_v = calc_vector(&m1.get_rect(), v1, &other_hitbox);
+
+                            entity.movement.as_mut().unwrap().set_velocity(new_v);
+                        }
+                    }
+                }
+                (uuid, entity)
+            })
+            .collect();
+
+        for (uuid, entity) in movable_entities {
+            self.entities.insert(uuid, entity);
+        }
+    }
 
     fn update_collision(&mut self, dt: f64) {
         // 원 ENTITY위치를 보관한다.
@@ -645,7 +739,14 @@ impl<'a> GameState<'a> {
                 for (oth_uuid, others) in &previous_entities {
                     // 자기 자신과는 비교하지않는다.
                     // quadtree에 포함된 항목과만 충돌판정한다.
-                    if uuid != *oth_uuid && *hash_uuid.get(oth_uuid).unwrap_or(&false) {
+                    // 이미 움직이지않는 케이스는 판정하지않는다. (고정셀로 취급)
+                    let (vx, vy) = entity.movement.as_ref().unwrap().velocity;
+                    let speed = vx * vx + vy * vy;
+
+                    if uuid != *oth_uuid
+                        && *hash_uuid.get(oth_uuid).unwrap_or(&false)
+                        && speed > 0.0
+                    {
                         // hitbox간 충돌여부 확인
                         let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
 
@@ -841,7 +942,7 @@ impl<'a> States for GameState<'a> {
         self.update_enemy_ai(dt);
 
         // 캐릭터간 충돌
-        self.update_collision(dt);
+        self.update_collision_slide(dt);
 
         // 캐릭터 실제 업데이트 처리
         self.update_entities(dt);
