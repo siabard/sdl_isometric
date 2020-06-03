@@ -3,7 +3,6 @@ use crate::entities::*;
 use crate::texture_manager::*;
 use crate::*;
 
-use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
 use std::collections::HashMap;
 

@@ -7,7 +7,6 @@ use crate::states::*;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::iter::FromIterator;
 use std::path::Path;
 
 use sdl2::event::Event;
@@ -360,32 +359,6 @@ impl<'a> GameState<'a> {
         map.init_map(2, 32, 0, 16, 16);
         self.map = Some(map.clone());
 
-        // 적 위치 초기화
-        //self.enemy.x = 300.0;
-        //self.enemy.y = 200.0;
-        // enemy 캐릭터에 대한 위치 전환
-        let mut x: f64 = 300.0;
-        let mut y: f64 = 200.0;
-
-        let entities: Vec<(Uuid, Entity)> = self
-            .entities
-            .clone()
-            .into_iter()
-            .filter(|(_, entity)| entity.type_ == EntityType::MOB)
-            .map(move |(uuid, mut entity)| {
-                entity.movement.as_mut().unwrap().set_pos_x(x);
-                entity.movement.as_mut().unwrap().set_pos_y(y);
-                x += 100.0;
-                y += 100.0;
-
-                (uuid, entity)
-            })
-            .collect();
-
-        for (uuid, entity) in entities {
-            //            self.entities.insert(uuid, entity);
-        }
-
         // 장애물 등록
         let mut idx = 0;
         let mut blocks: Vec<(Uuid, Entity)> = vec![];
@@ -651,11 +624,6 @@ impl<'a> GameState<'a> {
                     hash_uuid.insert(point.userdata, true);
                 }
 
-                let uuid_candidates: Vec<uuid::Uuid> = candidates
-                    .into_iter()
-                    .map(|point| point.userdata)
-                    .collect::<Vec<uuid::Uuid>>();
-
                 for (oth_uuid, others) in &previous_entities {
                     // 자기 자신과는 비교하지않는다.
                     // quadtree에 포함된 항목과만 충돌판정한다.
@@ -746,11 +714,6 @@ impl<'a> GameState<'a> {
                 for point in &candidates {
                     hash_uuid.insert(point.userdata, true);
                 }
-
-                let uuid_candidates: Vec<uuid::Uuid> = candidates
-                    .into_iter()
-                    .map(|point| point.userdata)
-                    .collect::<Vec<uuid::Uuid>>();
 
                 for (oth_uuid, others) in &previous_entities {
                     // 자기 자신과는 비교하지않는다.

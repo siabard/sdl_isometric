@@ -1,7 +1,6 @@
 use crate::constant::*;
 use crate::texture_manager::*;
 use crate::*;
-use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
 
 /// 애니메이션을 위한 부분
