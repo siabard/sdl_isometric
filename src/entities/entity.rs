@@ -1,5 +1,6 @@
 use crate::components::*;
 use crate::entities::*;
+use crate::texture_manager::*;
 use crate::*;
 
 use sdl2::render::Texture;
@@ -104,14 +105,19 @@ impl Entity {
         }
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: Option<&Texture>) {
+    pub fn render(
+        &self,
+        canvas: &mut WindowCanvas,
+        camera: &Rect,
+        texture_manager: Option<&TextureManager>,
+    ) {
         if let Some(movement) = self.movement.as_ref() {
             let direction = facing_to_direction(movement.get_facing());
             if let Some(animation) = self.animation.get(&direction) {
                 if let Some(attack) = self.attack.as_ref() {
                     attack.render(canvas, camera, animation);
                 }
-                animation.render(canvas, camera, texture.unwrap());
+                animation.render(canvas, camera, texture_manager.unwrap());
             }
 
             if let Some(hitbox) = self.hitbox.as_ref() {

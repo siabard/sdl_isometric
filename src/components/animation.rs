@@ -1,4 +1,5 @@
 use crate::constant::*;
+use crate::texture_manager::*;
 use crate::*;
 use sdl2::render::Texture;
 use sdl2::render::WindowCanvas;
@@ -10,6 +11,7 @@ pub struct AnimationComponent {
     pub y: f64,
     pub w: u32,
     pub h: u32,
+    textures: Vec<String>,
     frames: Vec<Rect>,
     frame: usize,
     max_frame: usize,
@@ -25,6 +27,7 @@ impl AnimationComponent {
         y: f64,
         w: u32,
         h: u32,
+        textures: Vec<String>,
         frames: Vec<Rect>,
         frame: usize,
         max_frame: usize,
@@ -37,6 +40,7 @@ impl AnimationComponent {
             y,
             w,
             h,
+            textures,
             frames,
             frame,
             max_frame,
@@ -64,7 +68,12 @@ impl AnimationComponent {
         }
     }
 
-    pub fn render(&self, canvas: &mut WindowCanvas, camera: &Rect, texture: &Texture) {
+    pub fn render(
+        &self,
+        canvas: &mut WindowCanvas,
+        camera: &Rect,
+        texture_manager: &TextureManager,
+    ) {
         let rect = Rect::new(
             transform_value(self.x as i32 - camera.x, WIDTH_RATIO),
             transform_value(self.y as i32 - camera.y, HEIGHT_RATIO),
@@ -72,16 +81,20 @@ impl AnimationComponent {
             transform_value(self.h, WIDTH_RATIO),
         );
         let src = self.frames[self.frame as usize];
-        canvas
-            .copy_ex(
-                texture,
-                Some(src),
-                Some(rect),
-                0.,
-                None,
-                self.flip_h,
-                self.flip_v,
-            )
-            .unwrap();
+
+        for texture_key in &self.textures {
+            let texture = texture_manager.textures.get(texture_key).unwrap();
+            canvas
+                .copy_ex(
+                    texture,
+                    Some(src),
+                    Some(rect),
+                    0.,
+                    None,
+                    self.flip_h,
+                    self.flip_v,
+                )
+                .unwrap();
+        }
     }
 }

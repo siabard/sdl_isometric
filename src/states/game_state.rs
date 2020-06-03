@@ -66,7 +66,7 @@ impl<'a> GameState<'a> {
                 (0, 0),
                 (0.0, 0.0),
                 speed,
-                2000.0,
+                1200.0,
                 300.0,
             );
 
@@ -123,6 +123,11 @@ impl<'a> GameState<'a> {
             0.,
             w,
             h,
+            if type_ == EntityType::PLAYER {
+                vec![String::from("BODY"), String::from("PANTS")]
+            } else {
+                vec![String::from(character::ENEMY)]
+            },
             uc_vec,
             0,
             max_frame as usize,
@@ -180,81 +185,93 @@ impl<'a> GameState<'a> {
             "resources/stalfaux.png".to_string(),
         );
 
+        self.add_texture(
+            texture_creator,
+            String::from("BODY"),
+            "resources/lpc/body/male/tanned.png".to_string(),
+        );
+
+        self.add_texture(
+            texture_creator,
+            String::from("PANTS"),
+            "resources/lpc/legs/pants/male/magenta_pants_male.png".to_string(),
+        );
+
         // 캐릭터 애니메이션 생성
         self.add_unit_char(
             EntityType::PLAYER,
-            Direction::Down,
+            Direction::Up,
             0,
-            0,
-            16,
-            16,
-            2,
+            512,
+            64,
+            64,
+            9,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Left,
-            32,
             0,
-            16,
-            16,
-            2,
-            true,
+            576,
+            64,
+            64,
+            9,
+            false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
-            Direction::Up,
-            64,
+            Direction::Down,
             0,
-            16,
-            16,
-            2,
+            640,
+            64,
+            64,
+            9,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Right,
-            32,
             0,
-            16,
-            16,
-            2,
+            704,
+            64,
+            64,
+            9,
             false,
             false,
         );
 
         self.add_unit_char(
             EntityType::PLAYER,
-            Direction::IdleDown,
+            Direction::IdleUp,
             0,
-            0,
-            16,
-            16,
-            1,
+            512,
+            64,
+            64,
+            9,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::IdleLeft,
-            32,
             0,
-            16,
-            16,
-            1,
-            true,
+            576,
+            64,
+            64,
+            9,
+            false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
-            Direction::IdleUp,
-            64,
+            Direction::IdleDown,
             0,
-            16,
-            16,
+            640,
+            64,
+            64,
             1,
             false,
             false,
@@ -262,22 +279,21 @@ impl<'a> GameState<'a> {
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::IdleRight,
-            32,
             0,
-            16,
-            16,
+            704,
+            64,
+            64,
             1,
             false,
             false,
         );
-
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Stop,
             0,
-            0,
-            16,
-            16,
+            512,
+            64,
+            64,
             1,
             false,
             false,
@@ -959,25 +975,12 @@ impl<'a> States for GameState<'a> {
         if let Some(map) = &self.map {
             map.render(canvas, &camera_rect, &self.texture_manager);
         }
-        // PLAYER용 텍스쳐
-        let texture_player = self
-            .texture_manager
-            .textures
-            .get(&String::from(character::PLAYER))
-            .unwrap();
-
-        // ENEMY용 텍스쳐
-        let texture_mob = self
-            .texture_manager
-            .textures
-            .get(&String::from(character::ENEMY))
-            .unwrap();
 
         for (_, entity) in self.entities.clone().into_iter() {
             if entity.type_ == EntityType::PLAYER {
-                entity.render(canvas, &camera_rect, Some(&texture_player));
+                entity.render(canvas, &camera_rect, Some(&self.texture_manager));
             } else if entity.type_ == EntityType::MOB {
-                entity.render(canvas, &camera_rect, Some(&texture_mob));
+                entity.render(canvas, &camera_rect, Some(&self.texture_manager));
             } else {
                 entity.render(canvas, &camera_rect, None);
             }
