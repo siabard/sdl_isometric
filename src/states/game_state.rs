@@ -319,7 +319,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12.0, 16.0);
+                entity.set_hitbox(0.0, 0.0, 20.0, 55.0, 24.0, 7.0);
                 (uuid, entity)
             })
             .collect();
@@ -409,8 +409,8 @@ impl<'a> GameState<'a> {
         let ux = player[0].1.movement.as_ref().unwrap().get_pos_x() as i32;
         let uy = player[0].1.movement.as_ref().unwrap().get_pos_y() as i32;
 
-        let width_margin = (self.cw as f32 * 0.2) as u32; // 카메라 좌우측 여유 공간
-        let height_margin = (self.ch as f32 * 0.2) as u32; // 카메라 상하측 여유 공간
+        let width_margin = (self.cw as f32 * 0.4) as u32; // 카메라 좌우측 여유 공간
+        let height_margin = (self.ch as f32 * 0.4) as u32; // 카메라 상하측 여유 공간
 
         // 카메라는 사용자를 쫓아간다.
         // Follow mode

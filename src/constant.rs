@@ -6,17 +6,17 @@ pub const SCREEN_HEIGHT: u32 = 600;
 
 /// 카메라로 보이는 VIEWPORT의 크기는 VIRTUAL_* 인 것으로 가정한다.
 /// 게임이 진행되는 화면의 논리적 가로크기
-pub const VIRTUAL_WIDTH: u32 = 400;
+pub const VIRTUAL_WIDTH: u32 = 800;
 
 /// 게임이 진행되는 화면의 논리적 세로크기
-pub const VIRTUAL_HEIGHT: u32 = 300;
+pub const VIRTUAL_HEIGHT: u32 = 600;
 
 /// 게임의 모든 텍스쳐는 아래 좌표계에 맞추어 보이게 된다.
 /// 게임이 진행되는 전체 영역의 가로 크기
-pub const WORLD_WIDTH: u32 = 600;
+pub const WORLD_WIDTH: u32 = 1600;
 
 /// 게임이 진행되는 전체 영역의 새로 크기
-pub const WORLD_HEIGHT: u32 = 450;
+pub const WORLD_HEIGHT: u32 = 1200;
 
 /// 물리 화면과 VIEWPORT 화면과의 확대 축소를 위한 가로 비율
 pub const WIDTH_RATIO: f32 = SCREEN_WIDTH as f32 / VIRTUAL_WIDTH as f32;

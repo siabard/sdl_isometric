@@ -31,5 +31,6 @@ pub trait States {
     fn next_result(&mut self) -> StateResult;
 }
 
+pub mod builder_state;
 pub mod game_state;
 pub mod init_state;
