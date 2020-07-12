@@ -8,6 +8,7 @@ pub mod map;
 pub mod quadtree;
 pub mod states;
 pub mod texture_manager;
+pub mod tween;
 
 pub use states::game_state::*;
 pub use states::init_state::*;
