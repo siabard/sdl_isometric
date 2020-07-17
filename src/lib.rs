@@ -5,6 +5,7 @@ pub mod constant;
 pub mod entities;
 pub mod gui;
 pub mod map;
+pub mod physics;
 pub mod quadtree;
 pub mod states;
 pub mod texture_manager;

@@ -1,5 +1,9 @@
 //! from Emmanual Oda's easing lua function
 //! [https://github.com/EmmanuelOga/easing/blob/master/lib/easing.lua]
+//! t = elapsed time
+//! b = begin
+//! c = change == ending - beggining
+//! d = duration (total time)
 
 /// Linear Tween
 pub fn linear(t: f64, b: f64, c: f64, d: f64) -> f64 {
@@ -380,13 +384,13 @@ pub fn in_out_back(t: f64, b: f64, c: f64, d: f64, s: Option<f64>) -> f64 {
     }
 
     let s = Some(s.unwrap() * 1.525);
-    let t = t / d * 2;
+    let t = t / d * 2.0;
 
     if t < 1.0 {
-        return c / 2.0 * (t * t * ((s.unwrap() + 1.0) * t - s.unwrap)) + b;
+        return c / 2.0 * (t * t * ((s.unwrap() + 1.0) * t - s.unwrap())) + b;
     } else {
         let t = t - 2.0;
-        return c / 2 * (t * t * ((s.unwrap() + 1.0) * t + s.unwrap) + 2.0) + b;
+        return c / 2.0 * (t * t * ((s.unwrap() + 1.0) * t + s.unwrap()) + 2.0) + b;
     }
 }
 
@@ -426,7 +430,7 @@ pub fn in_out_bounce(t: f64, b: f64, c: f64, d: f64) -> f64 {
     if t < d / 2.0 {
         in_bounce(t * 2.0, 0.0, c, d) * 0.5 + b
     } else {
-        out_bounce(t * 2.0 - d, 0, c, d) * 0.5 + c * 0.5 + b
+        out_bounce(t * 2.0 - d, 0.0, c, d) * 0.5 + c * 0.5 + b
     }
 }
 
