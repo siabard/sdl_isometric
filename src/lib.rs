@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 pub mod ai;
 pub mod animation;
 pub mod components;
@@ -13,6 +16,7 @@ pub mod tween;
 
 pub use states::game_state::*;
 pub use states::init_state::*;
+pub use states::timer_state::*;
 
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::int::PrimInt;

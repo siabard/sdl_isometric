@@ -34,3 +34,4 @@ pub trait States {
 pub mod builder_state;
 pub mod game_state;
 pub mod init_state;
+pub mod timer_state;

@@ -2,7 +2,7 @@
 //! [https://github.com/EmmanuelOga/easing/blob/master/lib/easing.lua]
 //! t = elapsed time
 //! b = begin
-//! c = change == ending - beggining
+//! c = change == ending - beginning
 //! d = duration (total time)
 
 /// Linear Tween
