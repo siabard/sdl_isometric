@@ -348,7 +348,7 @@ pub fn in_out_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<
 }
 
 /// OutInElastic
-pub fn outInElastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<f64>) -> f64 {
+pub fn out_in_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<f64>) -> f64 {
     if t < d / 2.0 {
         out_elastic(t * 2.0, b, c / 2.0, d, a, p)
     } else {

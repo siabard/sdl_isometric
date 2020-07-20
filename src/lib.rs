@@ -12,6 +12,7 @@ pub mod physics;
 pub mod quadtree;
 pub mod states;
 pub mod texture_manager;
+pub mod timer;
 pub mod tween;
 
 pub use states::game_state::*;

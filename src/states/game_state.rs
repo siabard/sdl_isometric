@@ -4,6 +4,7 @@ use crate::entities::*;
 use crate::map::*;
 use crate::quadtree::*;
 use crate::states::*;
+use crate::timer::Timer;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -39,6 +40,7 @@ pub struct GameState<'a> {
     cy: i32, // 카메라 Y 좌표
     cw: u32, // 카메라 폭
     ch: u32, // 카메라 높이
+    timers: HashMap<Uuid, Timer>,
 }
 
 impl<'a> GameState<'a> {
@@ -87,9 +89,11 @@ impl<'a> GameState<'a> {
             cy: 0,
             cw: VIRTUAL_WIDTH,
             ch: VIRTUAL_HEIGHT,
+            timers: HashMap::new(),
         }
     }
 
+    /// 텍스쳐 입히기
     pub fn add_texture(
         &mut self,
         texture_creator: &'a TextureCreator<WindowContext>,
@@ -100,6 +104,7 @@ impl<'a> GameState<'a> {
             .load_texture(key, texture_creator, Path::new(&path));
     }
 
+    /// 개별 이동 캐릭터 생성
     pub fn add_unit_char(
         &mut self,
         type_: EntityType,
@@ -298,7 +303,7 @@ impl<'a> GameState<'a> {
             false,
         );
 
-        // MOB 클래스 이밎 등록
+        // MOB 클래스 이미지 등록
 
         self.add_unit_char(
             EntityType::MOB,
@@ -567,6 +572,20 @@ impl<'a> GameState<'a> {
             for (uuid, entity) in entities {
                 self.entities.insert(uuid, entity);
             }
+        }
+
+        // 총알을 쏴라
+        if self.keyboards.contains(&Keycode::Space) {
+            // 타이머 생성
+            self.timers.insert(
+                Uuid::new_v4(),
+                Timer {
+                    t: 0.0,
+                    b: 0.0,
+                    c: 0.2,
+                    d: 1.0,
+                },
+            );
         }
     }
     fn update_collision_slide(&mut self, dt: f64) {
@@ -867,6 +886,35 @@ impl<'a> GameState<'a> {
             self.entities.insert(uuid, entity);
         }
     }
+
+    /// Timer 변동
+    fn update_timer(&mut self, dt: f64) {
+        // linear tween을 할 것
+        let timers: Vec<(Uuid, Timer)> = self
+            .timers
+            .clone()
+            .into_iter()
+            .filter(|(_, timer)| timer.t < timer.d)
+            .map(|(uuid, timer)| {
+                let v = tween::linear(timer.t + dt, timer.b, timer.c, timer.d);
+
+                println!("{} timer's value => {}", uuid, v);
+                (
+                    uuid,
+                    Timer {
+                        t: timer.t + dt,
+                        b: timer.b,
+                        c: timer.c,
+                        d: timer.d,
+                    },
+                )
+            })
+            .collect();
+
+        for (uuid, timer) in timers {
+            self.timers.insert(uuid, timer);
+        }
+    }
 }
 
 impl<'a> States for GameState<'a> {
@@ -922,6 +970,9 @@ impl<'a> States for GameState<'a> {
 
         // 캐릭터간 충돌
         self.update_collision_slide(dt);
+
+        // 타이머 변경
+        self.update_timer(dt);
 
         // 캐릭터 실제 업데이트 처리
         self.update_entities(dt);

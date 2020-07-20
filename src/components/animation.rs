@@ -88,7 +88,7 @@ impl AnimationComponent {
                     texture,
                     Some(src),
                     Some(rect),
-                    0.,
+                    15.,
                     None,
                     self.flip_h,
                     self.flip_v,

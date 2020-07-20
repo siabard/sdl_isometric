@@ -1,4 +1,5 @@
 use crate::states::*;
+use crate::timer::*;
 
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
@@ -13,14 +14,6 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::WindowCanvas;
 use sdl2::video::WindowContext;
-
-#[derive(Copy, Clone)]
-struct Timer {
-    pub t: f64, // elpased time
-    pub b: f64, // begin value
-    pub c: f64, // change over time
-    pub d: f64, // duration
-}
 
 lazy_static! {
     static ref G_TIMERS: Arc<RwLock<HashMap<u32, Timer>>> = {

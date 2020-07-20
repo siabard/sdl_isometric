@@ -4,10 +4,10 @@ use crate::*;
 /// 이동진행을 위한 부분
 #[derive(Copy, Clone, Debug)]
 pub struct MovementComponent {
-    pub x: f64,
-    pub y: f64,
-    pub px: f64,
-    pub py: f64,
+    pub x: f64,  // 기준 x위치
+    pub y: f64,  // 기준 y위치
+    pub px: f64, // 다음 tick으로 이동할 때 x위치
+    pub py: f64, // 다음 tick으로 이동할 때 y위치
     pub facing: Vector2<i32>,
     pub velocity: Vector2<f64>,
     max_velocity: f64,
@@ -203,7 +203,7 @@ impl MovementComponent {
         self.y
     }
 
-    /// facing 저옵를 가져온다.
+    /// facing 정보를 가져온다.
     pub fn get_facing(&self) -> Vector2<i32> {
         self.facing
     }

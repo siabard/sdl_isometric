@@ -119,7 +119,7 @@ fn main() -> Result<(), String> {
         match state_result {
             StateResult::Push(s) => {
                 if let StateInfo::Game(_name) = s {
-                    let mut game_state = TimerState::new();
+                    let mut game_state = GameState::new();
                     game_state.init(&texture_creator, &font_context);
                     states.push(Box::new(game_state));
                 }
