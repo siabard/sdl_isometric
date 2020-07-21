@@ -20,12 +20,9 @@ pub fn facing_to_direction(facing: Vector2<i32>) -> Direction {
 }
 
 /// e1, e2 컴포넌트간의 차이를 이용하여 e1이 e2를 바라보는 facing 벡터를 만든다.
-pub fn facing_from_to(e1: &MovementComponent, e2: &MovementComponent) -> Vector2<f64> {
-    let pos1 = e1.get_pos();
-    let pos2 = e2.get_pos();
-
-    let dx = pos1.0 - pos2.0;
-    let dy = pos2.1 - pos1.1;
+pub fn facing_from_to(e1: (f64, f64), e2: (f64, f64)) -> Vector2<f64> {
+    let dx = e1.0 - e2.0;
+    let dy = e2.1 - e1.1;
     let distance = (dx.powf(2.0) + dy.powf(2.0)).sqrt();
     let ratio_x = dx / distance;
     let ratio_y = dy / distance;

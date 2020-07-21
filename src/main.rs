@@ -61,6 +61,11 @@ fn main() -> Result<(), String> {
     let mut now: u32 = timer_subsystem.ticks();
     let mut last_time: u32 = 0;
     'running: loop {
+        // 모든 state가 비어있다면 게임 종료
+        if states.len() <= 0 {
+            break 'running;
+        }
+
         dt = (now - last_time) as f64 / 1000.; // 1000분의 1초로 dt를 계산한다.
         last_time = now;
         for event in event_pump.poll_iter() {

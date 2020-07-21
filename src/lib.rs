@@ -134,6 +134,6 @@ pub fn calc_vector(m1: &Rectangle, v1: Vector2<f64>, m2: &Rectangle) -> Vector2<
 
     let result = (v1.0 - anti_vector.0 * dot, v1.1 - anti_vector.1 * dot);
 
-    dbg!(v1, anti_vector, result);
+    //dbg!(v1, anti_vector, result);
     result
 }

@@ -3,6 +3,9 @@ use crate::states::*;
 
 use uuid::Uuid;
 
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -94,6 +97,16 @@ impl<'a> InitState<'a> {
 
 impl<'a> States for InitState<'a> {
     fn process_event(&mut self, event: &sdl2::event::Event, _dt: f64) -> StateResult {
+        match event {
+            Event::KeyDown {
+                keycode: Some(Keycode::Q),
+                ..
+            } => {
+                self.state_result = StateResult::Pop;
+            }
+            _ => (),
+        }
+
         for (_k, button) in self.buttons.iter_mut() {
             button.process_event(&event);
         }
@@ -112,8 +125,6 @@ impl<'a> States for InitState<'a> {
         if start_button.is_clicked {
             start_button.reset();
             self.state_result = StateResult::Push(StateInfo::Game("stage_1"))
-        } else {
-            self.state_result = StateResult::Default
         }
 
         StateResult::Default
