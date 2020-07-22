@@ -1,6 +1,8 @@
 use crate::components::*;
 use crate::entities::*;
 use crate::texture_manager::*;
+use crate::timer::{Timer, TimerResult};
+use crate::tween::*;
 use crate::*;
 
 use sdl2::render::WindowCanvas;
@@ -9,11 +11,6 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 /// 기본 엔터티
-/// hitbox_component
-/// movement_component -> 어떤 FnMut 를 호출하느냐에 맞추면 된다.
-/// movement 에는 해당하는 특성을 넣어준다.
-/// 이걸 SPECS로 하면 더 쉽겠지?
-/// animation_component
 #[derive(Clone, Debug)]
 pub struct Entity {
     pub type_: EntityType,
@@ -22,6 +19,9 @@ pub struct Entity {
     pub animation: HashMap<Direction, AnimationComponent>,
     pub movement: Option<MovementComponent>,
     pub attack: Option<AttackComponent>,
+    pub alive: bool,
+    pub timer: Option<crate::timer::Timer>,
+    pub timer_result: Option<crate::timer::TimerResult>,
 }
 
 impl Entity {
@@ -33,6 +33,9 @@ impl Entity {
             movement: None,
             animation: HashMap::new(),
             attack: Some(AttackComponent::new()),
+            alive: true,
+            timer: None,
+            timer_result: None,
         }
     }
 
@@ -83,6 +86,24 @@ impl Entity {
         }
     }
 
+    pub fn update_timer(&mut self, dt: f64) -> Option<TimerResult> {
+        // 타이머 처리
+        if let Some(timer) = self.timer.as_mut() {
+            // 타이머 종료시
+            // timer_result 따른 결과처리
+            if timer.d >= timer.t {
+                timer.t = timer.t + dt;
+                let v = tween::linear(timer.t + dt, timer.b, timer.c, timer.d);
+            } else {
+                // 타이머 리셋
+                timer.t = 0.0;
+
+                return self.timer_result.clone();
+            }
+        }
+
+        None
+    }
     pub fn update(&mut self, dt: f64) {
         if let Some(movement) = self.movement.as_mut() {
             let direction = facing_to_direction(movement.get_facing());
