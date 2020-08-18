@@ -8,14 +8,15 @@ use std::convert::TryInto;
 
 use crate::components::AnimationComponent;
 use crate::constant::*;
+use crate::timer::TimerResult;
 use crate::*;
 
 /// 공격 관련 처리
 #[derive(Clone, Debug)]
 pub struct AttackComponent {
-    pub deg: i32,      //바라보는 각도
-    attack_timer: f64, // 공격 타이머
-    attacking: bool,   // 공격 시도 진행
+    pub deg: i32,        //바라보는 각도
+    attack_timer: f64,   // 공격 타이머
+    pub attacking: bool, // 공격 시도 진행
 }
 
 impl AttackComponent {

@@ -4,7 +4,7 @@ use crate::entities::*;
 use crate::map::*;
 use crate::quadtree::*;
 use crate::states::*;
-use crate::timer::Timer;
+use crate::timer::{Timer, TimerResult};
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -708,28 +708,30 @@ impl<'a> GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| {
-                entity.type_ == EntityType::PLAYER || entity.type_ == EntityType::MOB
-            })
+            .filter(|(_, entity)| entity.type_ == EntityType::MOB)
             .map(|(uuid, mut entity)| {
                 entity.update(dt);
 
-                if entity.type_ == EntityType::MOB {
-                    // 공격 선정
-                    let tmps = entity.clone();
-                    let movement = tmps.movement.as_ref().unwrap();
-                    let direction = facing_to_direction(movement.get_facing());
-                    let animation = tmps.animation.get(&direction).unwrap();
+                // 공격 선정
+                let tmps = entity.clone();
+                let movement = tmps.movement.as_ref().unwrap();
+                let direction = facing_to_direction(movement.get_facing());
+                let animation = tmps.animation.get(&direction).unwrap();
 
-                    entity
-                        .attack
-                        .as_mut()
-                        .unwrap()
-                        .set_deg((px as f64, py as f64), animation);
-                }
+                entity
+                    .attack
+                    .as_mut()
+                    .unwrap()
+                    .set_deg((px as f64, py as f64), animation);
+
                 (uuid, entity)
             })
             .collect();
+
+        for (uuid, entity) in player {
+            self.entities.insert(uuid, entity);
+        }
+
         for (uuid, entity) in entities {
             self.entities.insert(uuid, entity);
         }
