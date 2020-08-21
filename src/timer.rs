@@ -15,4 +15,5 @@ pub struct Timer {
     pub b: f64, // begin value
     pub c: f64, // change over time
     pub d: f64, // duration
+    pub result: Option<TimerResult>,
 }

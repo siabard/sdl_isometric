@@ -70,6 +70,7 @@ impl<'a> States for TimerState<'a> {
                         b: 0.0,
                         c: 10.0,
                         d: 10.0,
+                        result: None,
                     },
                 );
                 self.state_result = StateResult::Default;
@@ -99,6 +100,7 @@ impl<'a> States for TimerState<'a> {
                                 b: v_x.b,
                                 c: v_x.c,
                                 d: v_x.d,
+                                result: v_x.result,
                             },
                         );
                     }
