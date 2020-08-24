@@ -576,15 +576,30 @@ impl<'a> GameState<'a> {
         // 총알을 쏴라
         if self.keyboards.contains(&Keycode::Space) {
             // 타이머 생성
-            self.timers.insert(
-                Uuid::new_v4(),
-                Timer {
-                    t: 0.0,
-                    b: 0.0,
-                    c: 0.2,
-                    d: 1.0,
-                },
-            );
+            let entities: Vec<(Uuid, Entity)> = self
+                .entities
+                .clone()
+                .into_iter()
+                .filter(|(_, entity)| {
+                    entity.type_ == EntityType::PLAYER && entity.movement.as_ref().is_some()
+                })
+                .map(|(uuid, mut entity)| {
+                    entity.insert_timer(
+                        "SHOOT".to_owned(),
+                        Timer {
+                            t: 0.0,
+                            b: 0.0,
+                            c: 0.2,
+                            d: 1.0,
+                        },
+                        TimerResult::EntitySpwan("MOB"),
+                    );
+                    (uuid, entity)
+                })
+                .collect();
+            for (uuid, entity) in entities {
+                self.entities.insert(uuid, entity);
+            }
         }
     }
     fn update_collision_slide(&mut self, dt: f64) {
@@ -790,29 +805,21 @@ impl<'a> GameState<'a> {
     /// Timer 변동
     fn update_timer(&mut self, dt: f64) {
         // linear tween을 할 것
-        let timers: Vec<(Uuid, Timer)> = self
-            .timers
+        let entities: Vec<(Uuid, Entity)> = self
+            .entities
             .clone()
             .into_iter()
-            .filter(|(_, timer)| timer.t < timer.d)
-            .map(|(uuid, timer)| {
-                let v = tween::linear(timer.t + dt, timer.b, timer.c, timer.d);
-
-                println!("{} timer's value => {}", uuid, v);
-                (
-                    uuid,
-                    Timer {
-                        t: timer.t + dt,
-                        b: timer.b,
-                        c: timer.c,
-                        d: timer.d,
-                    },
-                )
+            .filter(|(_, entity)| {
+                entity.type_ == EntityType::PLAYER && entity.movement.as_ref().is_some()
+            })
+            .map(|(uuid, mut entity)| {
+                entity.update_timer(dt);
+                (uuid, entity)
             })
             .collect();
 
-        for (uuid, timer) in timers {
-            self.timers.insert(uuid, timer);
+        for (uuid, entity) in entities {
+            self.entities.insert(uuid, entity);
         }
     }
 }

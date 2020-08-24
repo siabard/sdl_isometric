@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::entities::*;
 use crate::texture_manager::*;
-use crate::timer::{Timer, TimerResult};
+use crate::timer::{Timer, TimerResult, TimerSkill};
 use crate::tween::*;
 use crate::*;
 
@@ -20,8 +20,9 @@ pub struct Entity {
     pub movement: Option<MovementComponent>,
     pub attack: Option<AttackComponent>,
     pub alive: bool,
-    pub timer: Option<crate::timer::Timer>,
-    pub timer_result: Option<crate::timer::TimerResult>,
+    pub skill: HashMap<String, TimerSkill>,
+    //pub timer: Option<crate::timer::Timer>,
+    //pub timer_result: Option<crate::timer::TimerResult>,
 }
 
 impl Entity {
@@ -34,8 +35,7 @@ impl Entity {
             animation: HashMap::new(),
             attack: Some(AttackComponent::new()),
             alive: true,
-            timer: None,
-            timer_result: None,
+            skill: HashMap::new(),
         }
     }
 
@@ -86,24 +86,53 @@ impl Entity {
         }
     }
 
-    pub fn update_timer(&mut self, dt: f64) -> Option<TimerResult> {
-        // 타이머 처리
-        if let Some(timer) = self.timer.as_mut() {
-            // 타이머 종료시
-            // timer_result 따른 결과처리
-            if timer.d >= timer.t {
-                timer.t = timer.t + dt;
-                let v = tween::linear(timer.t + dt, timer.b, timer.c, timer.d);
-            } else {
-                // 타이머 리셋
-                timer.t = 0.0;
+    /// 기존에 값이 없으면 신규로 값을 넣는다.
+    pub fn insert_timer(&mut self, s: String, t: Timer, r: TimerResult) {
+        // 기존에 값이 없는 것만 넣는다.
+        if !self.skill.contains_key(&s) {
+            let timer_skill = TimerSkill(t, r);
 
-                return self.timer_result.clone();
-            }
+            self.skill.insert(s, timer_skill);
+        }
+    }
+
+    pub fn update_timer(&mut self, dt: f64) -> Vec<TimerResult> {
+        // 타이머 처리
+        let new_skill: Vec<(String, TimerSkill)> = self
+            .skill
+            .clone()
+            .into_iter()
+            .map(|(s, mut v)| {
+                if v.0.d >= v.0.t {
+                    let t_after = tween::linear(v.0.t + dt, v.0.b, v.0.c, v.0.d);
+                    v.0.t = t_after;
+                }
+                (s, v)
+            })
+            .collect();
+
+        let timer_result: Vec<TimerResult> = new_skill
+            .clone()
+            .into_iter()
+            .filter(|(_, v)| v.0.t >= v.0.d)
+            .map(|(_, v)| v.1)
+            .collect();
+
+        let remain_timer_result: Vec<(String, TimerSkill)> = self
+            .skill
+            .clone()
+            .into_iter()
+            .filter(|(_, v)| v.0.t < v.0.d)
+            .collect();
+
+        self.skill = HashMap::new();
+        for (s, ts) in remain_timer_result {
+            self.skill.insert(s, ts);
         }
 
-        None
+        timer_result
     }
+
     pub fn update(&mut self, dt: f64) {
         if let Some(movement) = self.movement.as_mut() {
             let direction = facing_to_direction(movement.get_facing());
