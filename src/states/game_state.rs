@@ -41,6 +41,7 @@ pub struct GameState<'a> {
     cw: u32, // 카메라 폭
     ch: u32, // 카메라 높이
     timers: HashMap<Uuid, Timer>,
+    entity_actions: Vec<EntityAction>,
 }
 
 impl<'a> GameState<'a> {
@@ -89,6 +90,7 @@ impl<'a> GameState<'a> {
             cw: VIRTUAL_WIDTH,
             ch: VIRTUAL_HEIGHT,
             timers: HashMap::new(),
+            entity_actions: vec![],
         }
     }
 
@@ -103,7 +105,51 @@ impl<'a> GameState<'a> {
             .load_texture(key, texture_creator, Path::new(&path));
     }
 
-    /// 개별 이동 캐릭터 생성
+    /// 개별 entity에 대한 애니메이션 추가
+    pub fn add_animation_to_entity(
+        &mut self,
+        uuid: uuid::Uuid,
+        id: Direction,
+        type_: EntityType,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+        max_frame: u32,
+        fliph: bool,
+        flipv: bool,
+    ) {
+        let mut uc_vec = vec![];
+        for i in 0..max_frame {
+            uc_vec.push(Rect::new(x + i as i32 * w as i32, y, w, h));
+        }
+
+        let animation = AnimationComponent::new(
+            0.,
+            0.,
+            w,
+            h,
+            if type_ == EntityType::PLAYER {
+                vec![String::from("BODY"), String::from("PANTS")]
+            } else {
+                vec![String::from(character::ENEMY)]
+            },
+            uc_vec,
+            0,
+            max_frame as usize,
+            0.25,
+            fliph,
+            flipv,
+        );
+
+        self.entities
+            .get_mut(&uuid)
+            .unwrap()
+            .animation
+            .insert(id, animation.clone());
+    }
+
+    /// 개별 entity Type에 대한 이동 캐릭터 생성
     pub fn add_unit_char(
         &mut self,
         type_: EntityType,
@@ -303,7 +349,6 @@ impl<'a> GameState<'a> {
         );
 
         // MOB 클래스 이미지 등록
-
         self.add_unit_char(
             EntityType::MOB,
             Direction::Stop,
@@ -591,9 +636,10 @@ impl<'a> GameState<'a> {
                             b: 0.0,
                             c: 0.2,
                             d: 1.0,
+                            result: Some(TimerResult::EntitySpwan("MOB".to_owned())),
                         },
-                        TimerResult::EntitySpwan("MOB"),
                     );
+
                     (uuid, entity)
                 })
                 .collect();
@@ -622,13 +668,15 @@ impl<'a> GameState<'a> {
         );
 
         for (p_uuid, p_entity) in &previous_entities {
-            let x = p_entity.hitbox.unwrap().x
-                + p_entity.hitbox.unwrap().hx
-                + p_entity.hitbox.unwrap().w / 2.0;
-            let y = p_entity.hitbox.unwrap().y
-                + p_entity.hitbox.unwrap().hy
-                + p_entity.hitbox.unwrap().h / 2.0;
-            quadtree.insert(Point::new(x, y, *p_uuid));
+            if p_entity.hitbox.is_some() {
+                let x = p_entity.hitbox.unwrap().x
+                    + p_entity.hitbox.unwrap().hx
+                    + p_entity.hitbox.unwrap().w / 2.0;
+                let y = p_entity.hitbox.unwrap().y
+                    + p_entity.hitbox.unwrap().hy
+                    + p_entity.hitbox.unwrap().h / 2.0;
+                quadtree.insert(Point::new(x, y, *p_uuid));
+            }
         }
 
         // 모든 Moveable 오브젝트를 가져온다.
@@ -642,51 +690,53 @@ impl<'a> GameState<'a> {
                 // 예상 위치가 현재 위치와 겹친 시점에 대한 판단을 통해서
                 // 필요한 액션을 취한다.
 
-                let entity_hitbox = entity.hitbox.unwrap().get_rect();
+                if let Some(entity_hitbox) = entity.hitbox {
+                    let entity_hitbox = entity_hitbox.get_rect();
 
-                // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
-                // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
-                let range: Rectangle = Rectangle::new(
-                    entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
-                    entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
-                    entity_hitbox.w as f64 * 4.0,
-                    entity_hitbox.h as f64 * 4.0,
-                );
+                    // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
+                    // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
+                    let range: Rectangle = Rectangle::new(
+                        entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
+                        entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
+                        entity_hitbox.w as f64 * 4.0,
+                        entity_hitbox.h as f64 * 4.0,
+                    );
 
-                let candidates = quadtree.query(range);
+                    let candidates = quadtree.query(range);
 
-                let mut hash_uuid: HashMap<uuid::Uuid, bool> = HashMap::new();
+                    let mut hash_uuid: HashMap<uuid::Uuid, bool> = HashMap::new();
 
-                for point in &candidates {
-                    hash_uuid.insert(point.userdata, true);
-                }
+                    for point in &candidates {
+                        hash_uuid.insert(point.userdata, true);
+                    }
 
-                // 자신이 이미 움직이지않는 케이스는 판정하지않는다. (고정셀로 취급)
-                let (vx, vy) = entity.movement.as_ref().unwrap().velocity;
-                let speed = vx * vx + vy * vy;
+                    // 자신이 이미 움직이지않는 케이스는 판정하지않는다. (고정셀로 취급)
+                    let (vx, vy) = entity.movement.as_ref().unwrap().velocity;
+                    let speed = vx * vx + vy * vy;
 
-                if speed > 0.0 {
-                    //dbg!(uuid, entity.type_);
-                    //dbg!(range);
-                    //dbg!(candidates);
-                    // quadtree에 포함된 항목과만 충돌판정한다.
-                    for (quadtree_uuid, _) in hash_uuid {
-                        // 자기 자신과는 비교하지않는다.
-                        if uuid != quadtree_uuid {
-                            let others = previous_entities.get(&quadtree_uuid).unwrap();
-                            //dbg!(others);
-                            // hitbox간 충돌여부 확인
-                            let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
+                    if speed > 0.0 {
+                        //dbg!(uuid, entity.type_);
+                        //dbg!(range);
+                        //dbg!(candidates);
+                        // quadtree에 포함된 항목과만 충돌판정한다.
+                        for (quadtree_uuid, _) in hash_uuid {
+                            // 자기 자신과는 비교하지않는다.
+                            if uuid != quadtree_uuid {
+                                let others = previous_entities.get(&quadtree_uuid).unwrap();
+                                //dbg!(others);
+                                // hitbox간 충돌여부 확인
+                                let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
 
-                            let directions = detect_collision(&entity_hitbox, &other_hitbox);
-                            if directions {
-                                // 예측데이터를 sliding 시킨다.
-                                //dbg!(entity.type_);
-                                let m1 = entity.hitbox.as_ref().unwrap();
-                                let v1 = entity.movement.as_ref().unwrap().velocity;
-                                let new_v = calc_vector(&m1.get_rect(), v1, &other_hitbox);
+                                let directions = detect_collision(&entity_hitbox, &other_hitbox);
+                                if directions {
+                                    // 예측데이터를 sliding 시킨다.
+                                    //dbg!(entity.type_);
+                                    let m1 = entity.hitbox.as_ref().unwrap();
+                                    let v1 = entity.movement.as_ref().unwrap().velocity;
+                                    let new_v = calc_vector(&m1.get_rect(), v1, &other_hitbox);
 
-                                entity.movement.as_mut().unwrap().set_velocity(new_v);
+                                    entity.movement.as_mut().unwrap().set_velocity(new_v);
+                                }
                             }
                         }
                     }
@@ -729,15 +779,16 @@ impl<'a> GameState<'a> {
 
                 // 공격 선정
                 let tmps = entity.clone();
-                let movement = tmps.movement.as_ref().unwrap();
-                let direction = facing_to_direction(movement.get_facing());
-                let animation = tmps.animation.get(&direction).unwrap();
-
-                entity
-                    .attack
-                    .as_mut()
-                    .unwrap()
-                    .set_deg((px as f64, py as f64), animation);
+                if let Some(movement) = tmps.movement.as_ref() {
+                    let direction = facing_to_direction(movement.get_facing());
+                    if let Some(animation) = tmps.animation.get(&direction) {
+                        entity
+                            .attack
+                            .as_mut()
+                            .unwrap()
+                            .set_deg((px as f64, py as f64), animation);
+                    }
+                }
 
                 (uuid, entity)
             })
@@ -774,25 +825,31 @@ impl<'a> GameState<'a> {
                 entity.type_ == EntityType::MOB && entity.movement.as_ref().is_some()
             })
             .map(|(uuid, mut entity)| {
-                let forwarding = facing_from_to(
-                    (
-                        pc.hitbox.unwrap().x + pc.hitbox.unwrap().hx + pc.hitbox.unwrap().w / 2.0,
-                        pc.hitbox.unwrap().y + pc.hitbox.unwrap().hy + pc.hitbox.unwrap().h / 2.0,
-                    ),
-                    (
-                        entity.hitbox.unwrap().x
-                            + entity.hitbox.unwrap().hx
-                            + entity.hitbox.unwrap().w / 2.0,
-                        entity.hitbox.unwrap().y
-                            + entity.hitbox.unwrap().hy
-                            + entity.hitbox.unwrap().h / 2.0,
-                    ),
-                );
-                entity
-                    .movement
-                    .as_mut()
-                    .unwrap()
-                    .move_forward(forwarding, dt);
+                if pc.hitbox.is_some() && entity.hitbox.is_some() {
+                    let forwarding = facing_from_to(
+                        (
+                            pc.hitbox.unwrap().x
+                                + pc.hitbox.unwrap().hx
+                                + pc.hitbox.unwrap().w / 2.0,
+                            pc.hitbox.unwrap().y
+                                + pc.hitbox.unwrap().hy
+                                + pc.hitbox.unwrap().h / 2.0,
+                        ),
+                        (
+                            entity.hitbox.unwrap().x
+                                + entity.hitbox.unwrap().hx
+                                + entity.hitbox.unwrap().w / 2.0,
+                            entity.hitbox.unwrap().y
+                                + entity.hitbox.unwrap().hy
+                                + entity.hitbox.unwrap().h / 2.0,
+                        ),
+                    );
+                    entity
+                        .movement
+                        .as_mut()
+                        .unwrap()
+                        .move_forward(forwarding, dt);
+                }
                 (uuid, entity)
             })
             .collect();
@@ -803,9 +860,16 @@ impl<'a> GameState<'a> {
     }
 
     /// Timer 변동
+    /// 근데 Timer 끝나뭔 뭔가 해야하지않냐?
     fn update_timer(&mut self, dt: f64) {
+        // time out 되었으면?
+        // -> result에 따른 행동
+
+        // entity의 update_timer실행
+
         // linear tween을 할 것
-        let entities: Vec<(Uuid, Entity)> = self
+        let mut timer_results: Vec<Option<TimerResult>> = vec![];
+        let entities: Vec<(Uuid, Entity, Vec<Option<TimerResult>>)> = self
             .entities
             .clone()
             .into_iter()
@@ -813,14 +877,78 @@ impl<'a> GameState<'a> {
                 entity.type_ == EntityType::PLAYER && entity.movement.as_ref().is_some()
             })
             .map(|(uuid, mut entity)| {
-                entity.update_timer(dt);
-                (uuid, entity)
+                let timer_results = entity.update_timer(dt);
+                (uuid, entity, timer_results)
             })
             .collect();
 
-        for (uuid, entity) in entities {
+        for (uuid, entity, mut results) in entities {
             self.entities.insert(uuid, entity);
+            timer_results.append(&mut results);
         }
+
+        for result in timer_results {
+            match result {
+                Some(TimerResult::EntitySpwan(s)) => {
+                    // S에 해당하는 아이템 만들도록 entity_action 등록
+                    if s.eq("MOB") {
+                        dbg!("MOB");
+                        self.entity_actions
+                            .push(EntityAction::CREATE(EntityType::MOB));
+                    }
+                }
+                _ => {
+                    dbg!("NOTHGIN");
+                    ()
+                }
+            }
+        }
+    }
+
+    /// entity_actions의 처리
+    fn update_entity_actions(&mut self, _dt: f64) {
+        // 전체 entity_actions를 처리
+        for action in self.entity_actions.clone() {
+            match action {
+                EntityAction::CREATE(etype) => match etype {
+                    EntityType::MOB => {
+                        let mut rng = rand::thread_rng();
+                        let x: f64 = rng.gen::<f64>() * 300.0;
+                        let y: f64 = rng.gen::<f64>() * 200.0;
+                        let speed: f64 = 100.0;
+                        let mut enemy = Entity::new(EntityType::MOB);
+
+                        enemy.set_movement(
+                            100.0 + x,
+                            100.0 + y,
+                            (0, 0),
+                            (0.0, 0.0),
+                            speed,
+                            1200.0,
+                            300.0,
+                        );
+                        let enemy_id = enemy.id;
+                        self.entities.insert(enemy.id, enemy);
+                        self.add_animation_to_entity(
+                            enemy_id,
+                            Direction::Stop,
+                            EntityType::MOB,
+                            0,
+                            0,
+                            16,
+                            16,
+                            1,
+                            false,
+                            false,
+                        );
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+
+        self.entity_actions = vec![];
     }
 }
 
@@ -880,6 +1008,9 @@ impl<'a> States for GameState<'a> {
 
         // 타이머 변경
         self.update_timer(dt);
+
+        // entity_action 처리
+        self.update_entity_actions(dt);
 
         // 캐릭터 실제 업데이트 처리
         self.update_entities(dt);

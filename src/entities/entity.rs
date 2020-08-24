@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::entities::*;
 use crate::texture_manager::*;
-use crate::timer::{Timer, TimerResult, TimerSkill};
+use crate::timer::{Timer, TimerResult};
 use crate::tween::*;
 use crate::*;
 
@@ -20,7 +20,7 @@ pub struct Entity {
     pub movement: Option<MovementComponent>,
     pub attack: Option<AttackComponent>,
     pub alive: bool,
-    pub skill: HashMap<String, TimerSkill>,
+    pub skill: HashMap<String, Timer>,
     //pub timer: Option<crate::timer::Timer>,
     //pub timer_result: Option<crate::timer::TimerResult>,
 }
@@ -87,42 +87,44 @@ impl Entity {
     }
 
     /// 기존에 값이 없으면 신규로 값을 넣는다.
-    pub fn insert_timer(&mut self, s: String, t: Timer, r: TimerResult) {
+    pub fn insert_timer(&mut self, s: String, t: Timer) {
         // 기존에 값이 없는 것만 넣는다.
         if !self.skill.contains_key(&s) {
-            let timer_skill = TimerSkill(t, r);
-
-            self.skill.insert(s, timer_skill);
+            self.skill.insert(s, t);
         }
     }
 
-    pub fn update_timer(&mut self, dt: f64) -> Vec<TimerResult> {
+    pub fn update_timer(&mut self, dt: f64) -> Vec<Option<TimerResult>> {
         // 타이머 처리
-        let new_skill: Vec<(String, TimerSkill)> = self
+        let new_skill: Vec<(String, Timer)> = self
             .skill
             .clone()
             .into_iter()
             .map(|(s, mut v)| {
-                if v.0.d >= v.0.t {
-                    let t_after = tween::linear(v.0.t + dt, v.0.b, v.0.c, v.0.d);
-                    v.0.t = t_after;
+                if v.d >= v.t {
+                    v.t += dt;
+                    let t_after = tween::linear(v.t, v.b, v.c, v.d);
                 }
                 (s, v)
             })
             .collect();
+        for (s, ts) in new_skill {
+            self.skill.insert(s, ts);
+        }
 
-        let timer_result: Vec<TimerResult> = new_skill
-            .clone()
-            .into_iter()
-            .filter(|(_, v)| v.0.t >= v.0.d)
-            .map(|(_, v)| v.1)
-            .collect();
-
-        let remain_timer_result: Vec<(String, TimerSkill)> = self
+        let timer_result: Vec<Option<TimerResult>> = self
             .skill
             .clone()
             .into_iter()
-            .filter(|(_, v)| v.0.t < v.0.d)
+            .filter(|(_, v)| v.t >= v.d)
+            .map(|(s, v)| v.result)
+            .collect();
+
+        let remain_timer_result: Vec<(String, Timer)> = self
+            .skill
+            .clone()
+            .into_iter()
+            .filter(|(_, v)| v.t < v.d)
             .collect();
 
         self.skill = HashMap::new();

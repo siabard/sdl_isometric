@@ -15,8 +15,5 @@ pub struct Timer {
     pub b: f64, // begin value
     pub c: f64, // change over time
     pub d: f64, // duration
+    pub result: Option<TimerResult>,
 }
-
-/// Timer + TImerResult 결합
-#[derive(Clone, Debug)]
-pub struct TimerSkill(pub Timer, pub TimerResult);

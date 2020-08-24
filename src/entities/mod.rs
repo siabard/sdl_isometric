@@ -3,6 +3,7 @@ pub use components::*;
 pub use entity::*;
 
 use crate::*;
+use uuid::Uuid;
 
 /// Facing 값에 따라 캐릭터 애니메이션을 설정한다.
 pub fn facing_to_direction(facing: Vector2<i32>) -> Direction {
@@ -42,4 +43,11 @@ pub enum EntityType {
     MOB,
     ATTACK,
     BLOCK,
+}
+
+/// Entity의 등록 소멸에 대한 Action Type
+#[derive(Clone, PartialEq, Debug)]
+pub enum EntityAction {
+    CREATE(EntityType),
+    DESTROY(Uuid),
 }
