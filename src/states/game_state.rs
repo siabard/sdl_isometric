@@ -892,15 +892,11 @@ impl<'a> GameState<'a> {
                 Some(TimerResult::EntitySpwan(s)) => {
                     // S에 해당하는 아이템 만들도록 entity_action 등록
                     if s.eq("MOB") {
-                        dbg!("MOB");
                         self.entity_actions
                             .push(EntityAction::CREATE(EntityType::MOB));
                     }
                 }
-                _ => {
-                    dbg!("NOTHGIN");
-                    ()
-                }
+                _ => (),
             }
         }
     }
