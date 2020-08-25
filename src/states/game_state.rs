@@ -862,13 +862,38 @@ impl<'a> GameState<'a> {
     /// Timer 변동
     /// 근데 Timer 끝나뭔 뭔가 해야하지않냐?
     fn update_timer(&mut self, dt: f64) {
+        let mut timer_results: Vec<Option<TimerResult>> = vec![];
         // time out 되었으면?
         // -> result에 따른 행동
+        let state_timer_results: Vec<(Uuid, Timer, Option<TimerResult>)> = self
+            .timers
+            .clone()
+            .into_iter()
+            .map(|(s, mut t)| {
+                if t.d > t.t {
+                    t.t += dt;
+                }
+
+                let result = if t.t >= t.d { t.clone().result } else { None };
+
+                (s, t, result)
+            })
+            .collect();
+
+        for (uuid, timer, results) in state_timer_results {
+            if timer.d > timer.t {
+                self.timers.insert(uuid, timer);
+            }
+
+            match results {
+                Some(_) => timer_results.push(results),
+                None => (),
+            }
+        }
 
         // entity의 update_timer실행
 
         // linear tween을 할 것
-        let mut timer_results: Vec<Option<TimerResult>> = vec![];
         let entities: Vec<(Uuid, Entity, Vec<Option<TimerResult>>)> = self
             .entities
             .clone()
