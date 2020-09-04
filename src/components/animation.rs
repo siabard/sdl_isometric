@@ -79,21 +79,23 @@ impl AnimationComponent {
             transform_value(self.w, WIDTH_RATIO),
             transform_value(self.h, WIDTH_RATIO),
         );
-        let src = self.frames[self.frame as usize];
 
-        for texture_key in &self.textures {
-            let texture = texture_manager.textures.get(texture_key).unwrap();
-            canvas
-                .copy_ex(
-                    texture,
-                    Some(src),
-                    Some(rect),
-                    0.,
-                    None,
-                    self.flip_h,
-                    self.flip_v,
-                )
-                .unwrap();
+        if self.frames.len() > 0 {
+            let src = self.frames[self.frame as usize];
+            for texture_key in &self.textures {
+                let texture = texture_manager.textures.get(texture_key).unwrap();
+                canvas
+                    .copy_ex(
+                        texture,
+                        Some(src),
+                        Some(rect),
+                        0.,
+                        None,
+                        self.flip_h,
+                        self.flip_v,
+                    )
+                    .unwrap();
+            }
         }
     }
 }

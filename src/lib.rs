@@ -54,6 +54,7 @@ pub enum Direction {
 pub mod character {
     pub const PLAYER: &str = "player";
     pub const ENEMY: &str = "enemy";
+    pub const ATTACK: &str = "attack";
 }
 
 #[derive(PartialEq, Copy, Clone)]

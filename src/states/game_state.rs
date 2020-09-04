@@ -130,9 +130,11 @@ impl<'a> GameState<'a> {
             w,
             h,
             if type_ == EntityType::PLAYER {
-                vec![String::from("BODY"), String::from("PANTS")]
-            } else {
+                vec![String::from(character::PLAYER)]
+            } else if type_ == EntityType::MOB {
                 vec![String::from(character::ENEMY)]
+            } else {
+                vec![String::from(character::ATTACK)]
             },
             uc_vec,
             0,
@@ -173,9 +175,11 @@ impl<'a> GameState<'a> {
             w,
             h,
             if type_ == EntityType::PLAYER {
-                vec![String::from("BODY"), String::from("PANTS")]
-            } else {
+                vec![String::from(character::PLAYER)]
+            } else if type_ == EntityType::MOB {
                 vec![String::from(character::ENEMY)]
+            } else {
+                vec![String::from(character::ATTACK)]
             },
             uc_vec,
             0,
@@ -246,48 +250,54 @@ impl<'a> GameState<'a> {
             "resources/lpc/legs/pants/male/magenta_pants_male.png".to_string(),
         );
 
+        self.add_texture(
+            texture_creator,
+            String::from(character::ATTACK),
+            "resources/arrow.png".to_string(),
+        );
+
         // 캐릭터 애니메이션 생성
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Up,
+            64,
             0,
-            512,
-            64,
-            64,
-            9,
+            16,
+            16,
+            2,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Left,
+            32,
             0,
-            576,
-            64,
-            64,
-            9,
-            false,
+            16,
+            16,
+            2,
+            true,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Down,
             0,
-            640,
-            64,
-            64,
-            9,
+            0,
+            16,
+            16,
+            2,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::Right,
+            32,
             0,
-            704,
-            64,
-            64,
-            9,
+            16,
+            16,
+            2,
             false,
             false,
         );
@@ -296,43 +306,43 @@ impl<'a> GameState<'a> {
             EntityType::PLAYER,
             Direction::IdleUp,
             0,
-            512,
             64,
-            64,
-            9,
+            16,
+            16,
+            2,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::IdleLeft,
+            32,
             0,
-            576,
-            64,
-            64,
-            9,
-            false,
+            16,
+            16,
+            2,
+            true,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::IdleDown,
             0,
-            640,
-            64,
-            64,
-            1,
+            0,
+            16,
+            16,
+            2,
             false,
             false,
         );
         self.add_unit_char(
             EntityType::PLAYER,
             Direction::IdleRight,
+            32,
             0,
-            704,
-            64,
-            64,
-            1,
+            16,
+            16,
+            2,
             false,
             false,
         );
@@ -340,9 +350,9 @@ impl<'a> GameState<'a> {
             EntityType::PLAYER,
             Direction::Stop,
             0,
-            512,
-            64,
-            64,
+            0,
+            16,
+            16,
             1,
             false,
             false,
@@ -361,6 +371,19 @@ impl<'a> GameState<'a> {
             false,
         );
 
+        // ATTACK 클래스 이미지 등록
+        self.add_unit_char(
+            EntityType::ATTACK,
+            Direction::Stop,
+            0,
+            0,
+            16,
+            8,
+            1,
+            false,
+            false,
+        );
+
         // player 캐릭터에 대한 Hitbox 등록
         let players: Vec<(Uuid, Entity)> = self
             .entities
@@ -368,7 +391,15 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                entity.set_hitbox(0.0, 0.0, 20.0, 55.0, 24.0, 7.0);
+                let movement = entity.movement.as_ref().unwrap();
+                entity.set_hitbox(
+                    movement.get_pos_x(),
+                    movement.get_pos_y(),
+                    0.0,
+                    0.0,
+                    16.0,
+                    16.0,
+                );
                 (uuid, entity)
             })
             .collect();
@@ -383,7 +414,15 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::MOB)
             .map(|(uuid, mut entity)| {
-                entity.set_hitbox(0.0, 0.0, 2.0, 0.0, 12.0, 16.0);
+                let movement = entity.movement.as_ref().unwrap();
+                entity.set_hitbox(
+                    movement.get_pos_x(),
+                    movement.get_pos_y(),
+                    2.0,
+                    0.0,
+                    12.0,
+                    16.0,
+                );
                 (uuid, entity)
             })
             .collect();
@@ -391,6 +430,7 @@ impl<'a> GameState<'a> {
         for (uuid, entity) in enemies {
             self.entities.insert(uuid, entity);
         }
+
         //self.pc2.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
         //self.pc.set_hitbox(2, 0, 12, 16);
         //self.enemy.set_hitbox(2, 0, 12, 16);
@@ -636,7 +676,7 @@ impl<'a> GameState<'a> {
                             b: 0.0,
                             c: 0.2,
                             d: 1.0,
-                            result: Some(TimerResult::EntitySpwan("MOB".to_owned())),
+                            result: Some(TimerResult::EntitySpwan("ATTACK".to_owned())),
                         },
                     );
 
@@ -773,7 +813,7 @@ impl<'a> GameState<'a> {
             .entities
             .clone()
             .into_iter()
-            .filter(|(_, entity)| entity.type_ == EntityType::MOB)
+            .filter(|(_, entity)| entity.type_ != EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
                 entity.update(dt);
 
@@ -916,9 +956,9 @@ impl<'a> GameState<'a> {
             match result {
                 Some(TimerResult::EntitySpwan(s)) => {
                     // S에 해당하는 아이템 만들도록 entity_action 등록
-                    if s.eq("MOB") {
+                    if s.eq("ATTACK") {
                         self.entity_actions
-                            .push(EntityAction::CREATE(EntityType::MOB));
+                            .push(EntityAction::CREATE(EntityType::ATTACK));
                     }
                 }
                 _ => (),
@@ -932,32 +972,32 @@ impl<'a> GameState<'a> {
         for action in self.entity_actions.clone() {
             match action {
                 EntityAction::CREATE(etype) => match etype {
-                    EntityType::MOB => {
+                    EntityType::ATTACK => {
                         let mut rng = rand::thread_rng();
                         let x: f64 = rng.gen::<f64>() * 300.0;
                         let y: f64 = rng.gen::<f64>() * 200.0;
                         let speed: f64 = 100.0;
-                        let mut enemy = Entity::new(EntityType::MOB);
+                        let mut entity = Entity::new(EntityType::ATTACK);
 
-                        enemy.set_movement(
+                        entity.set_movement(
                             100.0 + x,
                             100.0 + y,
                             (0, 0),
-                            (0.0, 0.0),
+                            (0.025, 0.025),
                             speed,
                             1200.0,
                             300.0,
                         );
-                        let enemy_id = enemy.id;
-                        self.entities.insert(enemy.id, enemy);
+                        let entity_id = entity.id;
+                        self.entities.insert(entity.id, entity);
                         self.add_animation_to_entity(
-                            enemy_id,
+                            entity_id,
                             Direction::Stop,
-                            EntityType::MOB,
+                            EntityType::ATTACK,
                             0,
                             0,
                             16,
-                            16,
+                            8,
                             1,
                             false,
                             false,
@@ -1050,13 +1090,18 @@ impl<'a> States for GameState<'a> {
         }
 
         for (_, entity) in self.entities.clone().into_iter() {
+            entity.render(canvas, &camera_rect, Some(&self.texture_manager));
+
+            /*
             if entity.type_ == EntityType::PLAYER {
                 entity.render(canvas, &camera_rect, Some(&self.texture_manager));
             } else if entity.type_ == EntityType::MOB {
+                //dbg!(&entity);
                 entity.render(canvas, &camera_rect, Some(&self.texture_manager));
             } else {
                 entity.render(canvas, &camera_rect, None);
             }
+            */
         }
 
         StateResult::Default
