@@ -34,7 +34,7 @@ pub struct GameState<'a> {
     music: Option<Music<'a>>,
     chunks: HashMap<String, Chunk>,
     state_result: StateResult,
-    map: Option<Map>,
+    map: Option<Map<'a>>,
     keyboards: HashSet<sdl2::keyboard::Keycode>,
     cx: i32, // 카메라 X 좌표
     cy: i32, // 카메라 Y 좌표
@@ -441,33 +441,17 @@ impl<'a> GameState<'a> {
             "map".to_string(),
             "resources/map.png".to_string(),
         );
-        let mut map = Map::new("map".to_owned(), 16, 16);
-        map.load_map();
-        map.init_map(0, 0, 0, 16, 16);
-        map.init_map(1, 16, 0, 16, 16);
-        map.init_map(2, 32, 0, 16, 16);
-        self.map = Some(map.clone());
+
+        let mut map = Map::new(
+            "map".to_owned(),
+            texture_creator,
+            "assets/tiled_base64_zlib.tmx",
+        );
+        self.map = Some(map);
 
         // 장애물 등록
         let mut idx = 0;
         let mut blocks: Vec<(Uuid, Entity)> = vec![];
-
-        for block in map.map {
-            if block > 0 {
-                let y: f64 = (idx as i32 / MAP_WIDTH) as f64 * 16.0;
-                let x: f64 = (idx as i32 % MAP_WIDTH) as f64 * 16.0;
-
-                let mut entity = Entity::new(EntityType::BLOCK);
-                entity.set_movement(x, y, (0, 0), (0., 0.), 0., 0., 0.);
-                entity.set_hitbox(x, y, 0.0, 0.0, 16.0, 16.0);
-                blocks.push((Uuid::new_v4(), entity));
-            }
-            idx += 1;
-        }
-
-        for (uuid, entity) in blocks {
-            self.entities.insert(uuid, entity);
-        }
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
@@ -1086,7 +1070,7 @@ impl<'a> States for GameState<'a> {
         let camera_rect = Rect::new(self.cx, self.cy, self.cw, self.ch);
         // map 먼저 출력
         if let Some(map) = &self.map {
-            map.render(canvas, &camera_rect, &self.texture_manager);
+            map.render(canvas, &camera_rect);
         }
 
         for (_, entity) in self.entities.clone().into_iter() {
@@ -1094,14 +1078,14 @@ impl<'a> States for GameState<'a> {
 
             /*
             if entity.type_ == EntityType::PLAYER {
-                entity.render(canvas, &camera_rect, Some(&self.texture_manager));
-            } else if entity.type_ == EntityType::MOB {
-                //dbg!(&entity);
-                entity.render(canvas, &camera_rect, Some(&self.texture_manager));
-            } else {
-                entity.render(canvas, &camera_rect, None);
-            }
-            */
+                    entity.render(canvas, &camera_rect, Some(&self.texture_manager));
+                } else if entity.type_ == EntityType::MOB {
+                    //dbg!(&entity);
+                    entity.render(canvas, &camera_rect, Some(&self.texture_manager));
+                } else {
+                    entity.render(canvas, &camera_rect, None);
+                }
+             */
         }
 
         StateResult::Default

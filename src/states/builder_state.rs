@@ -18,7 +18,7 @@ pub struct BuilderState<'a> {
     entities: HashMap<Uuid, Entity>,
     music: Option<Music<'a>>,
     chunks: HashMap<String, Chunk>,
-    map: Option<Map>,
+    map: Option<Map<'a>>,
     state_result: StateResult,
     keyboards: HashSet<sdl2::keyboard::Keycode>,
     cx: i32, // 카메라 x좌표
