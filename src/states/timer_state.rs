@@ -38,11 +38,11 @@ impl<'a> TimerState<'a> {
 
     pub fn init(
         &mut self,
-        texture_creator: &'a TextureCreator<WindowContext>,
+        _texture_creator: &'a TextureCreator<WindowContext>,
         font_context: &'a sdl2::ttf::Sdl2TtfContext,
     ) {
         self.texture_manager = Some(TextureManager::new());
-        let font = font_context
+        let _font = font_context
             .load_font(Path::new("resources/hackr.ttf"), 36)
             .unwrap();
     }
@@ -118,7 +118,9 @@ impl<'a> States for TimerState<'a> {
             Some(v) => {
                 let cv = tween::in_sine(v.t, v.b, v.c, v.d);
                 println!("cv => {}", cv);
-                canvas.circle(50, 50, (cv * 10.0) as i16, Color::WHITE);
+                canvas
+                    .circle(50, 50, (cv * 10.0) as i16, Color::WHITE)
+                    .unwrap();
             }
             None => (),
         }
@@ -127,10 +129,10 @@ impl<'a> States for TimerState<'a> {
 
     fn process_mouse(
         &mut self,
-        x: i32,
-        y: i32,
-        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
-        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _x: i32,
+        _y: i32,
+        _new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _old_buttons: &HashSet<sdl2::mouse::MouseButton>,
         _dt: f64,
     ) {
     }

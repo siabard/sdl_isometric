@@ -2,7 +2,6 @@ use crate::components::*;
 use crate::entities::*;
 use crate::texture_manager::*;
 use crate::timer::{Timer, TimerResult};
-use crate::tween::*;
 use crate::*;
 
 use sdl2::render::WindowCanvas;
@@ -40,7 +39,16 @@ impl Entity {
     }
 
     /// Hitbox 충돌영역 정의
-    pub fn set_hitbox(&mut self, x: f64, y: f64, hx: f64, hy: f64, w: f64, h: f64) {
+    pub fn set_hitbox(&mut self, hx: f64, hy: f64, w: f64, h: f64) {
+        let x = match self.movement {
+            Some(m) => m.get_pos_x(),
+            None => 0.0,
+        };
+
+        let y = match self.movement {
+            Some(m) => m.get_pos_y(),
+            None => 0.0,
+        };
         self.hitbox = Some(HitboxComponent::new(x, y, hx, hy, w, h));
     }
 
@@ -104,7 +112,7 @@ impl Entity {
             .map(|(s, mut v)| {
                 if v.d >= v.t {
                     v.t += dt;
-                    let t_after = tween::linear(v.t, v.b, v.c, v.d);
+                    let _t_after = tween::linear(v.t, v.b, v.c, v.d);
                 }
                 (s, v)
             })
@@ -118,7 +126,7 @@ impl Entity {
             .clone()
             .into_iter()
             .filter(|(_, v)| v.t >= v.d)
-            .map(|(s, v)| v.result)
+            .map(|(_, v)| v.result)
             .collect();
 
         let remain_timer_result: Vec<(String, Timer)> = self

@@ -1,4 +1,3 @@
-use crate::components::*;
 use crate::constant::*;
 use crate::entities::*;
 use crate::map::*;
@@ -30,7 +29,7 @@ pub struct BuilderState<'a> {
 impl<'a> BuilderState<'a> {
     pub fn new() -> BuilderState<'a> {
         let texture_manager = TextureManager::new();
-        let mut entities = HashMap::new();
+        let entities: HashMap<Uuid, Entity> = HashMap::new();
 
         BuilderState {
             texture_manager,
@@ -49,25 +48,25 @@ impl<'a> BuilderState<'a> {
 }
 
 impl<'a> States for BuilderState<'a> {
-    fn process_event(&mut self, event: &sdl2::event::Event, dt: f64) -> StateResult {
+    fn process_event(&mut self, _event: &sdl2::event::Event, _dt: f64) -> StateResult {
         StateResult::Default
     }
 
     fn process_mouse(
         &mut self,
-        x: i32,
-        y: i32,
-        new_buttons: &HashSet<sdl2::mouse::MouseButton>,
-        old_buttons: &HashSet<sdl2::mouse::MouseButton>,
-        dt: f64,
+        _x: i32,
+        _y: i32,
+        _new_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _old_buttons: &HashSet<sdl2::mouse::MouseButton>,
+        _dt: f64,
     ) {
     }
 
-    fn update(&mut self, dt: f64) -> StateResult {
+    fn update(&mut self, _dt: f64) -> StateResult {
         StateResult::Default
     }
 
-    fn render(&self, canvas: &mut WindowCanvas) -> StateResult {
+    fn render(&self, _canvas: &mut WindowCanvas) -> StateResult {
         StateResult::Default
     }
 

@@ -193,7 +193,7 @@ pub fn in_out_expo(t: f64, b: f64, c: f64, d: f64) -> f64 {
         return c / 2.0 * 2.0_f64.powf(10.0 * (t - 1.0)) + b - c * 0.0005;
     } else {
         let t_ = t - 1.0;
-        return c / 2.0 * 1.0005 * (-2.0_f64.powf(-10.0 * t) + 2.0) + b;
+        return c / 2.0 * 1.0005 * (-2.0_f64.powf(-10.0 * t_) + 2.0) + b;
     }
 }
 
@@ -315,32 +315,28 @@ pub fn in_out_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<
         return b + c;
     }
 
-    if p == None {
-        let p = Some(d * (0.3 * 1.5));
-    }
+    let p_ = p.unwrap_or(d * (0.3 * 1.5));
 
-    if a == None {
-        let a = Some(0);
-    }
+    let mut a_ = a.unwrap_or(0.0);
 
     let s;
-    if a == None || a.unwrap() < c.abs() {
-        let a = c;
-        s = p.unwrap() / 4.0;
+    if a == None || a_ < c.abs() {
+        a_ = c;
+        s = p_ / 4.0;
     } else {
-        s = p.unwrap() / (2.0 * std::f64::consts::PI) * (c / a.unwrap()).asin();
+        s = p_ / (2.0 * std::f64::consts::PI) * (c / a_).asin();
     }
 
     if t < 1.0 {
         let t = t - 1.0;
         return -0.5
-            * (a.unwrap() * 2.0_f64.powf(10.0 * t))
-            * ((t * d - s) * (2.0 * std::f64::consts::PI) / p.unwrap()).sin()
+            * (a_ * 2.0_f64.powf(10.0 * t))
+            * ((t * d - s) * (2.0 * std::f64::consts::PI) / p_).sin()
             + b;
     } else {
         return a.unwrap()
             * 2.0_f64.powf(-10.0 * t)
-            * ((t * d - s) * (2.0 * std::f64::consts::PI) / p.unwrap()).sin()
+            * ((t * d - s) * (2.0 * std::f64::consts::PI) / p_).sin()
             * 0.5
             + c
             + b;
@@ -358,39 +354,30 @@ pub fn out_in_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<
 
 /// InBack
 pub fn in_back(t: f64, b: f64, c: f64, d: f64, s: Option<f64>) -> f64 {
-    if s == None {
-        let s = Some(1.70158);
-    }
+    let s = s.unwrap_or(1.70158);
 
     let t = t / d;
-    c * t * t * ((s.unwrap() + 1.0) * t - s.unwrap()) + b
+    c * t * t * ((s + 1.0) * t - s) + b
 }
 
 /// OutBack
 pub fn out_back(t: f64, b: f64, c: f64, d: f64, s: Option<f64>) -> f64 {
-    if s == None {
-        let s = Some(1.70158);
-    }
-
+    let s = s.unwrap_or(1.70158);
     let t = t / d - 1.0;
 
-    c * (t * t * ((s.unwrap() + 1.0) * t + s.unwrap()) + 1.0) + b
+    c * (t * t * ((s + 1.0) * t + s) + 1.0) + b
 }
 
 /// InOutBack
 pub fn in_out_back(t: f64, b: f64, c: f64, d: f64, s: Option<f64>) -> f64 {
-    if s == None {
-        let s = Some(1.70158);
-    }
-
-    let s = Some(s.unwrap() * 1.525);
+    let s = s.unwrap_or(1.70158) * 1.525;
     let t = t / d * 2.0;
 
     if t < 1.0 {
-        return c / 2.0 * (t * t * ((s.unwrap() + 1.0) * t - s.unwrap())) + b;
+        return c / 2.0 * (t * t * ((s + 1.0) * t - s)) + b;
     } else {
         let t = t - 2.0;
-        return c / 2.0 * (t * t * ((s.unwrap() + 1.0) * t + s.unwrap()) + 2.0) + b;
+        return c / 2.0 * (t * t * ((s + 1.0) * t + s) + 2.0) + b;
     }
 }
 

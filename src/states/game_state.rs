@@ -391,15 +391,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                let movement = entity.movement.as_ref().unwrap();
-                entity.set_hitbox(
-                    movement.get_pos_x(),
-                    movement.get_pos_y(),
-                    0.0,
-                    0.0,
-                    16.0,
-                    16.0,
-                );
+                entity.set_hitbox(0.0, 0.0, 16.0, 16.0);
                 (uuid, entity)
             })
             .collect();
@@ -414,15 +406,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::MOB)
             .map(|(uuid, mut entity)| {
-                let movement = entity.movement.as_ref().unwrap();
-                entity.set_hitbox(
-                    movement.get_pos_x(),
-                    movement.get_pos_y(),
-                    2.0,
-                    0.0,
-                    12.0,
-                    16.0,
-                );
+                entity.set_hitbox(2.0, 0.0, 12.0, 16.0);
                 (uuid, entity)
             })
             .collect();
@@ -442,7 +426,7 @@ impl<'a> GameState<'a> {
             "resources/map.png".to_string(),
         );
 
-        let mut map = Map::new(
+        let map = Map::new(
             "map".to_owned(),
             texture_creator,
             "assets/tiled_base64_zlib.tmx",
@@ -450,8 +434,8 @@ impl<'a> GameState<'a> {
         self.map = Some(map);
 
         // 장애물 등록
-        let mut idx = 0;
-        let mut blocks: Vec<(Uuid, Entity)> = vec![];
+        //        let mut idx = 0;
+        //        let mut blocks: Vec<(Uuid, Entity)> = vec![];
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
