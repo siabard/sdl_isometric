@@ -944,16 +944,19 @@ impl<'a> GameState<'a> {
                         let speed: f64 = 100.0;
                         let mut entity = Entity::new(EntityType::ATTACK);
 
+                        // attack 객체를 생성할 때 VELOCITY 를 꽤 크게 줘야 그나마 움직임..(2000 이상?)
+                        //
                         entity.set_movement(
                             100.0 + x,
                             100.0 + y,
                             (0, 0),
-                            (0.025, 0.025),
+                            (2500., 2500.),
                             speed,
                             1200.0,
-                            300.0,
+                            0.0,
                         );
                         let entity_id = entity.id;
+
                         self.entities.insert(entity.id, entity);
                         self.add_animation_to_entity(
                             entity_id,
