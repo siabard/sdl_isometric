@@ -426,11 +426,7 @@ impl<'a> GameState<'a> {
             "resources/map.png".to_string(),
         );
 
-        let map = Map::new(
-            "map".to_owned(),
-            texture_creator,
-            "assets/tiled_base64_zlib.tmx",
-        );
+        let map = Map::new("map".to_owned(), texture_creator, "tiled_base64_zlib.tmx");
         self.map = Some(map);
 
         // 장애물 등록
@@ -547,6 +543,7 @@ impl<'a> GameState<'a> {
             .unwrap()
             .move_forward((0., 1.), dt);
              */
+
             let entities: Vec<(Uuid, Entity)> = self
                 .entities
                 .clone()

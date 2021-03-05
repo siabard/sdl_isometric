@@ -35,3 +35,6 @@ pub const TIME_SPAN: u32 = 1_000_000_000 / 60;
 
 /// delta t설정하기 (안쓰임)
 pub const DELTA_T: f64 = 1.0f64 / 60.0;
+
+/// asset 파일이 들어있는 곳
+pub const ASSET_DIR: &'static str = "assets/";

@@ -6,6 +6,8 @@ use sdl2::render::TextureQuery;
 /// struct tiles
 #[derive(Debug, Clone)]
 pub struct TileAtlas {
+    /// first_gid
+    pub first_gid: u32,
     /// width of texutre
     pub texture_width: u32,
     /// height of texture
@@ -19,7 +21,7 @@ pub struct TileAtlas {
 }
 
 impl TileAtlas {
-    pub fn new(texture: &Texture, w: u32, h: u32) -> TileAtlas {
+    pub fn new(texture: &Texture, first_gid: u32, w: u32, h: u32) -> TileAtlas {
         let query: TextureQuery = texture.query();
 
         let mut atlas: Vec<(u32, u32, u32, u32)> = vec![];
@@ -43,6 +45,7 @@ impl TileAtlas {
         let ver_length: u32 = query.height / h;
 
         TileAtlas {
+            first_gid,
             texture_width: query.width,
             texture_height: query.height,
             hor_length,

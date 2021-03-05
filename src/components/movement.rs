@@ -82,7 +82,7 @@ impl MovementComponent {
 
             // Bound condition
             if self.velocity.1 < 0. {
-                self.velocity.1 = 0.
+                self.velocity.1 = 0.;
             }
         } else if self.velocity.1 < 0. {
             // Y 속도의 최대치 계산
@@ -95,7 +95,7 @@ impl MovementComponent {
 
             // Bound condition
             if self.velocity.1 > 0. {
-                self.velocity.1 = 0.
+                self.velocity.1 = 0.;
             }
         }
     }
