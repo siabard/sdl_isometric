@@ -56,7 +56,7 @@ impl TileAtlas {
 
     /// return rect of tile
     pub fn get_tile_rect(&self, index: u32) -> Rect {
-        let tile_uv = self.atlas[index as usize];
+        let tile_uv = self.atlas[(index - self.first_gid) as usize];
         Rect::new(
             tile_uv.0 as i32,
             tile_uv.1 as i32,

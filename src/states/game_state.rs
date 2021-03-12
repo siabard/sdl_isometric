@@ -427,11 +427,20 @@ impl<'a> GameState<'a> {
         );
 
         let map = Map::new("map".to_owned(), texture_creator, "tiled_base64_zlib.tmx");
+        // 장애물 등록
+        let mut blocks: Vec<(Uuid, Entity)> = vec![];
+        for block in map.blocks.iter() {
+            let mut entity = Entity::new(EntityType::BLOCK);
+            entity.set_movement(block.x as f64, block.y as f64, (0, 0), (0., 0.), 0., 0., 0.);
+            entity.set_hitbox(0.0, 0.0, block.w as f64, block.h as f64);
+            blocks.push((Uuid::new_v4(), entity));
+        }
+
         self.map = Some(map);
 
-        // 장애물 등록
-        //        let mut idx = 0;
-        //        let mut blocks: Vec<(Uuid, Entity)> = vec![];
+        for (uuid, entity) in blocks {
+            self.entities.insert(uuid, entity);
+        }
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());
