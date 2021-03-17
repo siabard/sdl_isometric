@@ -157,11 +157,31 @@ impl<'a> Map<'a> {
                         for x in tile_left..tile_right {
                             let gid = tiles[y as usize][x as usize].gid;
                             if gid != 0 {
-                                let rect = self.tile_atlases.get(&i).unwrap().get_tile_rect(gid);
+                                // gid 로 부터 tile_atlases의 index를 구함
+                                // tile_atlases의 모든 first_gid 중 gid 값보다 큰 것 중에 가장 작은 인덱스를 구할 것
+                                // 해당 인덱스가 tile_atlases의 인덱스이다.
+                                let mut idx_of_least_greate_gid: Vec<u32> = self
+                                    .tile_atlases
+                                    .iter()
+                                    .filter(|datum| datum.1.first_gid <= gid)
+                                    .map(|datum| (*datum.0) as u32)
+                                    .collect();
+
+                                idx_of_least_greate_gid.sort();
+
+                                let idx_gid = if idx_of_least_greate_gid.len() > 0 {
+                                    (idx_of_least_greate_gid[0] as usize)
+                                } else {
+                                    // 가장 큰 인덱스를 줄 것
+                                    self.tile_atlases.keys().len()
+                                };
+
+                                let rect =
+                                    self.tile_atlases.get(&idx_gid).unwrap().get_tile_rect(gid);
 
                                 canvas
                                     .copy_ex(
-                                        &self.textures[&i],
+                                        &self.textures[&idx_gid],
                                         Some(rect),
                                         Some(Rect::new(
                                             (x - tile_left) as i32 * tile_width as i32
