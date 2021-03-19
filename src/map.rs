@@ -8,7 +8,6 @@ use crate::constant::*;
 use crate::tile;
 use sdl2::video::WindowContext;
 use sdl2::{image::LoadTexture, render::Texture, render::TextureCreator};
-use std::fs::File;
 use std::path::Path;
 use tiled::parse_file;
 
@@ -36,7 +35,8 @@ pub struct Map<'a> {
     pub tile_heights: HashMap<usize, u32>, // height of a tile in pixels
     pub layers: Vec<tiled::Layer>,
     pub textures: HashMap<usize, Texture<'a>>,
-    pub blocks: Vec<(Rect)>,
+    pub blocks: Vec<Rect>,
+    pub gids: HashMap<u32, usize>,
 }
 
 impl<'a> Map<'a> {
@@ -56,6 +56,9 @@ impl<'a> Map<'a> {
         let mut tile_widths = HashMap::new();
         let mut tile_heights = HashMap::new();
 
+        let mut gids = HashMap::new();
+        gids.insert(0, 0);
+
         for (i, tileset) in tile_sets.iter().enumerate() {
             let tile_width = tileset.tile_width;
             let tile_height = tileset.tile_height;
@@ -69,6 +72,12 @@ impl<'a> Map<'a> {
             let tile_atlas =
                 tile::TileAtlas::new(&texture, tileset.first_gid, tile_width, tile_height);
             textures.insert(i, texture);
+
+            //tile atlas에 정의된 모든 tile 정보에 texture id를 넣는다.
+            for (j, _) in tile_atlas.atlas.iter().enumerate() {
+                gids.insert(j as u32 + tileset.first_gid, i);
+            }
+
             tile_atlases.insert(i, tile_atlas);
             tile_widths.insert(i, tileset.tile_width);
             tile_heights.insert(i, tileset.tile_height);
@@ -76,9 +85,10 @@ impl<'a> Map<'a> {
 
         // layer의 이름이 collision인 경우에는 해당하는 값의 좌표를 blocks에 넣는다.
         let mut blocks = vec![];
-        for (i, layer) in layers.iter().enumerate() {
-            if layer.name == "collision" {
-                if let tiled::LayerData::Finite(tiles) = &layer.tiles {
+
+        for (_, layer) in layers.iter().enumerate() {
+            if let tiled::LayerData::Finite(tiles) = &layer.tiles {
+                if layer.name == "collision" {
                     for y in 0..map.height {
                         for x in 0..map.width {
                             let gid = tiles[y as usize][x as usize].gid;
@@ -112,6 +122,7 @@ impl<'a> Map<'a> {
             layers,
             textures,
             blocks,
+            gids,
         }
     }
 
@@ -160,21 +171,12 @@ impl<'a> Map<'a> {
                                 // gid 로 부터 tile_atlases의 index를 구함
                                 // tile_atlases의 모든 first_gid 중 gid 값보다 큰 것 중에 가장 작은 인덱스를 구할 것
                                 // 해당 인덱스가 tile_atlases의 인덱스이다.
-                                let mut idx_of_least_greate_gid: Vec<u32> = self
-                                    .tile_atlases
-                                    .iter()
-                                    .filter(|datum| datum.1.first_gid <= gid)
-                                    .map(|datum| (*datum.0) as u32)
-                                    .collect();
-
-                                idx_of_least_greate_gid.sort();
-
-                                let idx_gid = if idx_of_least_greate_gid.len() > 0 {
-                                    (idx_of_least_greate_gid[0] as usize)
-                                } else {
-                                    // 가장 큰 인덱스를 줄 것
-                                    self.tile_atlases.keys().len()
-                                };
+                                // TODO : 이와 같은 방식은 비 경제적이다.
+                                // tile_atlas를 생성할 때, 어떤 texutre index인지, 그리고 해당 texture의 어떤 위치인지를
+                                // 등록하는 편이 좋다.
+                                // 즉 말하자면 Vector이면 되지, 굳이 HashMap일 필요가 없다.
+                                // Vec<(texture_idx: usize, x, y, w, h)> 이면 됨..
+                                let idx_gid = self.gids.get(&gid).unwrap();
 
                                 let rect =
                                     self.tile_atlases.get(&idx_gid).unwrap().get_tile_rect(gid);
