@@ -52,6 +52,11 @@ impl Entity {
         self.hitbox = Some(HitboxComponent::new(x, y, hx, hy, w, h));
     }
 
+    /// 위치를 설정한다.
+    pub fn set_pos_xy(&mut self, x: f64, y: f64) {
+        self.movement.as_mut().unwrap().set_pos((x, y));
+    }
+
     pub fn set_movement(
         &mut self,
         x: f64,
@@ -98,9 +103,10 @@ impl Entity {
     /// 기존에 값이 없으면 신규로 값을 넣는다.
     pub fn insert_timer(&mut self, s: String, t: Timer) {
         // 기존에 값이 없는 것만 넣는다.
-        if !self.skill.contains_key(&s) {
-            self.skill.insert(s, t);
+        if self.skill.contains_key(&s) {
+            return;
         }
+        self.skill.insert(s, t);
     }
 
     pub fn update_timer(&mut self, dt: f64) -> Vec<Option<TimerResult>> {

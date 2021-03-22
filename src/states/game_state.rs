@@ -240,21 +240,32 @@ impl<'a> GameState<'a> {
 
         self.add_texture(
             texture_creator,
-            String::from("BODY"),
-            "resources/lpc/body/male/tanned.png".to_string(),
-        );
-
-        self.add_texture(
-            texture_creator,
-            String::from("PANTS"),
-            "resources/lpc/legs/pants/male/magenta_pants_male.png".to_string(),
-        );
-
-        self.add_texture(
-            texture_creator,
             String::from(character::ATTACK),
             "resources/arrow.png".to_string(),
         );
+
+        // 지도 등록
+        self.add_texture(
+            texture_creator,
+            "map".to_string(),
+            "resources/map.png".to_string(),
+        );
+
+        let map = Map::new("map".to_owned(), texture_creator, "tiled_base64_zlib.tmx");
+        // 장애물 등록
+        let mut blocks: Vec<(Uuid, Entity)> = vec![];
+        for block in map.blocks.iter() {
+            let mut entity = Entity::new(EntityType::BLOCK);
+            entity.set_movement(block.x as f64, block.y as f64, (0, 0), (0., 0.), 0., 0., 0.);
+            entity.set_hitbox(0.0, 0.0, block.w as f64, block.h as f64);
+            blocks.push((Uuid::new_v4(), entity));
+        }
+
+        self.map = Some(map);
+
+        for (uuid, entity) in blocks {
+            self.entities.insert(uuid, entity);
+        }
 
         // 캐릭터 애니메이션 생성
         self.add_unit_char(
@@ -384,6 +395,8 @@ impl<'a> GameState<'a> {
             false,
         );
 
+        let (new_x, new_y) = self.map.as_ref().unwrap().get_tile_xy(15, 15);
+
         // player 캐릭터에 대한 Hitbox 등록
         let players: Vec<(Uuid, Entity)> = self
             .entities
@@ -391,6 +404,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
+                entity.set_pos_xy(new_x, new_y);
                 entity.set_hitbox(0.0, 0.0, 16.0, 16.0);
                 (uuid, entity)
             })
@@ -418,29 +432,6 @@ impl<'a> GameState<'a> {
         //self.pc2.set_hitbox(0.0, 0.0, 2.0, 0.0, 12, 16);
         //self.pc.set_hitbox(2, 0, 12, 16);
         //self.enemy.set_hitbox(2, 0, 12, 16);
-
-        // 지도 등록
-        self.add_texture(
-            texture_creator,
-            "map".to_string(),
-            "resources/map.png".to_string(),
-        );
-
-        let map = Map::new("map".to_owned(), texture_creator, "tiled_base64_zlib.tmx");
-        // 장애물 등록
-        let mut blocks: Vec<(Uuid, Entity)> = vec![];
-        for block in map.blocks.iter() {
-            let mut entity = Entity::new(EntityType::BLOCK);
-            entity.set_movement(block.x as f64, block.y as f64, (0, 0), (0., 0.), 0., 0., 0.);
-            entity.set_hitbox(0.0, 0.0, block.w as f64, block.h as f64);
-            blocks.push((Uuid::new_v4(), entity));
-        }
-
-        self.map = Some(map);
-
-        for (uuid, entity) in blocks {
-            self.entities.insert(uuid, entity);
-        }
 
         // 음원 등록
         self.add_music("resources/beat.wav".to_owned());

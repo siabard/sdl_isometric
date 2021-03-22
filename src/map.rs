@@ -143,6 +143,18 @@ impl<'a> Map<'a> {
         (tile_x, tile_y)
     }
 
+    /// translate (tile_x, tile_y)
+    /// to coordinates
+    pub fn get_tile_xy(&self, tile_x: u32, tile_y: u32) -> (f64, f64) {
+        let tile_x: u32 = tile_x.min(self.width);
+        let tile_y: u32 = tile_y.min(self.height);
+
+        (
+            (tile_x * self.tile_width) as f64,
+            (tile_y * self.tile_height) as f64,
+        )
+    }
+
     pub fn render(&self, canvas: &mut WindowCanvas, camera_rect: &Rect) {
         for (i, layer) in self.layers.iter().enumerate() {
             if layer.name != "collision" {
