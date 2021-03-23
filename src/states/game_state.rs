@@ -1,3 +1,4 @@
+use crate::actions::teleport;
 use crate::components::*;
 use crate::constant::*;
 use crate::entities::*;
@@ -395,8 +396,6 @@ impl<'a> GameState<'a> {
             false,
         );
 
-        let (new_x, new_y) = self.map.as_ref().unwrap().get_tile_xy(15, 15);
-
         // player 캐릭터에 대한 Hitbox 등록
         let players: Vec<(Uuid, Entity)> = self
             .entities
@@ -404,7 +403,7 @@ impl<'a> GameState<'a> {
             .into_iter()
             .filter(|(_, entity)| entity.type_ == EntityType::PLAYER)
             .map(|(uuid, mut entity)| {
-                entity.set_pos_xy(new_x, new_y);
+                teleport(self.map.as_ref().unwrap(), &mut entity, 15, 15);
                 entity.set_hitbox(0.0, 0.0, 16.0, 16.0);
                 (uuid, entity)
             })
