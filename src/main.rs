@@ -60,7 +60,7 @@ fn main() -> Result<(), String> {
     let mut last_time: u32 = 0;
     'running: loop {
         // 모든 state가 비어있다면 게임 종료
-        if states.len() <= 0 {
+        if states.is_empty() {
             break 'running;
         }
 

@@ -33,11 +33,7 @@ impl Rectangle {
         let px = point.x;
         let py = point.y;
 
-        if px >= self.x && px <= self.x + self.w && py >= self.y && py <= self.y + self.h {
-            return true;
-        } else {
-            return false;
-        }
+        px >= self.x && px <= self.x + self.w && py >= self.y && py <= self.y + self.h
     }
 
     fn intersects(&self, other: &Rectangle) -> bool {
@@ -96,19 +92,25 @@ impl QuadTree {
                 if !self.divided {
                     self.subdivide();
                 }
-                if self.northeast.as_mut().unwrap().insert(point.clone()) {
+                if self.northeast.as_mut().unwrap().insert(point) {
                     return true;
-                } else if self.northwest.as_mut().unwrap().insert(point.clone()) {
+                }
+
+                if self.northwest.as_mut().unwrap().insert(point) {
                     return true;
-                } else if self.southeast.as_mut().unwrap().insert(point.clone()) {
+                }
+
+                if self.southeast.as_mut().unwrap().insert(point) {
                     return true;
-                } else if self.southwest.as_mut().unwrap().insert(point.clone()) {
+                }
+
+                if self.southwest.as_mut().unwrap().insert(point) {
                     return true;
                 }
             }
         }
 
-        return false;
+        false
     }
 
     fn subdivide(&mut self) {
@@ -144,7 +146,7 @@ impl QuadTree {
         let mut result = vec![];
         if self.boundary.intersects(&range) {
             for point in &self.points {
-                if range.contains(&*point) {
+                if range.contains(point) {
                     result.push(*point);
                 }
             }
@@ -157,7 +159,7 @@ impl QuadTree {
             }
         }
 
-        return result;
+        result
     }
 }
 
