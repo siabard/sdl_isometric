@@ -80,7 +80,7 @@ impl AnimationComponent {
             transform_value(self.h, WIDTH_RATIO),
         );
 
-        if self.frames.len() > 0 {
+        if !self.frames.is_empty() {
             let src = self.frames[self.frame as usize];
             for texture_key in &self.textures {
                 let texture = texture_manager.textures.get(texture_key).unwrap();
