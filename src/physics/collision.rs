@@ -22,8 +22,8 @@ pub fn sat_detection(r1: &Vec<(f64, f64)>, r2: &Vec<(f64, f64)>) -> bool {
             let mut max_r1: f64 = f64::NEG_INFINITY;
             let mut min_r1: f64 = f64::INFINITY;
 
-            for p in 0..poly1.len() {
-                let q = poly1[p].0 * axis.0 + poly1[p].1 * axis.1;
+            for (_, p) in poly1.iter().enumerate() {
+                let q = p.0 * axis.0 + p.1 * axis.1;
 
                 min_r1 = min_r1.min(q);
                 max_r1 = max_r1.max(q);
@@ -32,8 +32,8 @@ pub fn sat_detection(r1: &Vec<(f64, f64)>, r2: &Vec<(f64, f64)>) -> bool {
             let mut max_r2: f64 = f64::NEG_INFINITY;
             let mut min_r2: f64 = f64::INFINITY;
 
-            for p in 0..poly2.len() {
-                let q = poly2[p].0 * axis.0 + poly2[p].1 * axis.1;
+            for (_, p) in poly2.iter().enumerate() {
+                let q = p.0 * axis.0 + p.1 * axis.1;
                 min_r2 = min_r2.min(q);
                 max_r2 = max_r2.max(q);
             }
@@ -45,7 +45,7 @@ pub fn sat_detection(r1: &Vec<(f64, f64)>, r2: &Vec<(f64, f64)>) -> bool {
         }
     }
     // 모든 축에 겹침이 있으므로 Intersect가 발생한다.
-    return true;
+    true
 }
 
 pub fn distance(h: (f64, f64), t: (f64, f64)) -> f64 {
