@@ -45,7 +45,7 @@ impl<'a> InitState<'a> {
             .unwrap();
 
         let surface = font
-            .render("Init State")
+            .render("Init State (press Q to quit)")
             .blended(Color::RGBA(255, 0, 0, 255))
             .unwrap();
 
