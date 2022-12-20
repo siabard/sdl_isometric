@@ -16,11 +16,7 @@ use sdl2::render::WindowCanvas;
 use sdl2::video::WindowContext;
 
 lazy_static! {
-    static ref G_TIMERS: Arc<RwLock<HashMap<u32, Timer>>> = {
-        let m = Arc::new(RwLock::new(HashMap::new()));
-
-        m
-    };
+    static ref G_TIMERS: Arc<RwLock<HashMap<u32, Timer>>> = Arc::new(RwLock::new(HashMap::new()));
 }
 
 pub struct TimerState<'a> {
@@ -138,8 +134,6 @@ impl<'a> States for TimerState<'a> {
     }
 
     fn next_result(&mut self) -> StateResult {
-        let result = self.state_result;
-
-        result
+        self.state_result
     }
 }

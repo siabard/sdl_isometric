@@ -8,6 +8,7 @@ pub mod components;
 pub mod constant;
 pub mod entities;
 pub mod gui;
+pub mod input;
 pub mod map;
 pub mod physics;
 pub mod quadtree;
@@ -134,8 +135,6 @@ pub fn calc_vector(m1: &Rectangle, v1: Vector2<f64>, m2: &Rectangle) -> Vector2<
     // dp = dp - N *dot(dp, N)
     let dot = v1.0 * anti_vector.0 + v1.1 * anti_vector.1;
 
-    let result = (v1.0 - anti_vector.0 * dot, v1.1 - anti_vector.1 * dot);
-
     //dbg!(v1, anti_vector, result);
-    result
+    (v1.0 - anti_vector.0 * dot, v1.1 - anti_vector.1 * dot)
 }

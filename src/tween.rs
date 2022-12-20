@@ -57,20 +57,20 @@ pub fn out_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
 pub fn in_out_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
     let t_ = t / d * 2.0;
     if t < 1.0 {
-        return c / 2.0 * t_.powi(3) + b;
+        c / 2.0 * t_.powi(3) + b
     } else {
         let t__ = t_ - 2.0;
-        return c / 2.0 * t__.powi(3) + b;
+        c / 2.0 * t__.powi(3) + b
     }
 }
 
 /// OutInCubic
 pub fn out_in_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
-    return if t < d / 2.0 {
+    if t < d / 2.0 {
         out_cubic(t * 2.0, b, c / 2.0, d)
     } else {
         in_cubic((t * 2.0) - d, b + c / 2.0, c / 2.0, d)
-    };
+    }
 }
 
 /// InQuart
@@ -89,10 +89,10 @@ pub fn out_quart(t: f64, b: f64, c: f64, d: f64) -> f64 {
 pub fn in_out_quart(t: f64, b: f64, c: f64, d: f64) -> f64 {
     let t_ = t / d * 2.0;
     if t < 1.0 {
-        return c / 2.0 * t_.powi(4) + b;
+        c / 2.0 * t_.powi(4) + b
     } else {
         let t__ = t_ - 2.0;
-        return -c / 2.0 * (t__.powi(4) - 2.0) + b;
+        -c / 2.0 * (t__.powi(4) - 2.0) + b
     }
 }
 
@@ -121,10 +121,10 @@ pub fn out_quint(t: f64, b: f64, c: f64, d: f64) -> f64 {
 pub fn in_out_quint(t: f64, b: f64, c: f64, d: f64) -> f64 {
     let t_ = t / d * 2.0;
     if t_ < 1.0 {
-        return c / 2.0 * t_.powi(5) + b;
+        c / 2.0 * t_.powi(5) + b
     } else {
         let t__ = t_ - 2.0;
-        return c / 2.0 * (t__.powi(5) + 2.0) + b;
+        c / 2.0 * (t__.powi(5) + 2.0) + b
     }
 }
 
@@ -175,7 +175,7 @@ pub fn out_expo(t: f64, b: f64, c: f64, d: f64) -> f64 {
     if t == d {
         b + c
     } else {
-        c * 1.001 * (-2.0_f64.powf(-10.0 * t / d) + 1.0) + b
+        c * 1.001 * (-(2.0_f64.powf(-10.0 * t / d)) + 1.0) + b
     }
 }
 
@@ -190,10 +190,10 @@ pub fn in_out_expo(t: f64, b: f64, c: f64, d: f64) -> f64 {
     }
 
     if t < 1.0 {
-        return c / 2.0 * 2.0_f64.powf(10.0 * (t - 1.0)) + b - c * 0.0005;
+        c / 2.0 * 2.0_f64.powf(10.0 * (t - 1.0)) + b - c * 0.0005
     } else {
         let t_ = t - 1.0;
-        return c / 2.0 * 1.0005 * (-2.0_f64.powf(-10.0 * t_) + 2.0) + b;
+        c / 2.0 * 1.0005 * (-(2.0_f64.powf(-10.0 * t_)) + 2.0) + b
     }
 }
 
@@ -258,7 +258,7 @@ pub fn in_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<f64>
     let s;
     let a_;
 
-    if a == None || a.unwrap() < c.abs() {
+    if a.is_none() || a.unwrap() < c.abs() {
         a_ = c;
         s = p_ / 4.0;
     } else {
@@ -292,7 +292,7 @@ pub fn out_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<f64
     let s;
     let a_;
 
-    if a == None || a.unwrap() < c.abs() {
+    if a.is_none() || a.unwrap() < c.abs() {
         a_ = c;
         s = p_ / 4.0;
     } else {
@@ -320,7 +320,7 @@ pub fn in_out_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<
     let mut a_ = a.unwrap_or(0.0);
 
     let s;
-    if a == None || a_ < c.abs() {
+    if a.is_none() || a_ < c.abs() {
         a_ = c;
         s = p_ / 4.0;
     } else {
@@ -329,17 +329,16 @@ pub fn in_out_elastic(t: f64, b: f64, c: f64, d: f64, a: Option<f64>, p: Option<
 
     if t < 1.0 {
         let t = t - 1.0;
-        return -0.5
-            * (a_ * 2.0_f64.powf(10.0 * t))
+        -0.5 * (a_ * 2.0_f64.powf(10.0 * t))
             * ((t * d - s) * (2.0 * std::f64::consts::PI) / p_).sin()
-            + b;
+            + b
     } else {
-        return a.unwrap()
+        a.unwrap()
             * 2.0_f64.powf(-10.0 * t)
             * ((t * d - s) * (2.0 * std::f64::consts::PI) / p_).sin()
             * 0.5
             + c
-            + b;
+            + b
     }
 }
 
@@ -374,10 +373,10 @@ pub fn in_out_back(t: f64, b: f64, c: f64, d: f64, s: Option<f64>) -> f64 {
     let t = t / d * 2.0;
 
     if t < 1.0 {
-        return c / 2.0 * (t * t * ((s + 1.0) * t - s)) + b;
+        c / 2.0 * (t * t * ((s + 1.0) * t - s)) + b
     } else {
         let t = t - 2.0;
-        return c / 2.0 * (t * t * ((s + 1.0) * t + s) + 2.0) + b;
+        c / 2.0 * (t * t * ((s + 1.0) * t + s) + 2.0) + b
     }
 }
 

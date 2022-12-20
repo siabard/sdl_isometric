@@ -149,7 +149,7 @@ impl<'a> GameState<'a> {
             .get_mut(&uuid)
             .unwrap()
             .animation
-            .insert(id, animation.clone());
+            .insert(id, animation);
     }
 
     /// 개별 entity Type에 대한 이동 캐릭터 생성
@@ -212,12 +212,12 @@ impl<'a> GameState<'a> {
     }
 
     pub fn add_music(&mut self, path: String) {
-        let music = sdl2::mixer::Music::from_file(&Path::new(&path)).unwrap();
+        let music = sdl2::mixer::Music::from_file(Path::new(&path)).unwrap();
         self.music = Some(music);
     }
 
     pub fn add_sound(&mut self, key: String, path: String) {
-        let chunk = sdl2::mixer::Chunk::from_file(&Path::new(&path)).unwrap();
+        let chunk = sdl2::mixer::Chunk::from_file(Path::new(&path)).unwrap();
 
         self.chunks.insert(key, chunk);
     }
@@ -700,10 +700,10 @@ impl<'a> GameState<'a> {
                     // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
                     // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
                     let range: Rectangle = Rectangle::new(
-                        entity_hitbox.x as f64 - entity_hitbox.w as f64 * 2.0,
-                        entity_hitbox.y as f64 - entity_hitbox.h as f64 * 2.0,
-                        entity_hitbox.w as f64 * 4.0,
-                        entity_hitbox.h as f64 * 4.0,
+                        entity_hitbox.x - entity_hitbox.w * 2.0,
+                        entity_hitbox.y - entity_hitbox.h * 2.0,
+                        entity_hitbox.w * 4.0,
+                        entity_hitbox.h * 4.0,
                     );
 
                     let candidates = quadtree.query(range);
@@ -786,11 +786,7 @@ impl<'a> GameState<'a> {
                 if let Some(movement) = tmps.movement.as_ref() {
                     let direction = facing_to_direction(movement.get_facing());
                     if let Some(animation) = tmps.animation.get(&direction) {
-                        entity
-                            .attack
-                            .as_mut()
-                            .unwrap()
-                            .set_deg((px as f64, py as f64), animation);
+                        entity.attack.as_mut().unwrap().set_deg((px, py), animation);
                     }
                 }
 
@@ -989,10 +985,10 @@ impl<'a> States for GameState<'a> {
                 self.keyboards.insert(*k);
                 if *k == Keycode::Num1 {
                     let chunk = self.chunks.get(&"high".to_owned()).unwrap();
-                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                    sdl2::mixer::Channel::all().play(chunk, 0).unwrap();
                 } else if *k == Keycode::Num2 {
                     let chunk = self.chunks.get(&"low".to_owned()).unwrap();
-                    sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
+                    sdl2::mixer::Channel::all().play(chunk, 0).unwrap();
                 } else if *k == Keycode::Num0 {
                     let music = self.music.as_ref().unwrap();
 
@@ -1014,7 +1010,7 @@ impl<'a> States for GameState<'a> {
             Event::KeyUp {
                 keycode: Some(k), ..
             } => {
-                self.keyboards.remove(&k);
+                self.keyboards.remove(k);
                 self.state_result = StateResult::Default;
             }
             _ => self.state_result = StateResult::Default,

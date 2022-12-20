@@ -46,7 +46,7 @@ impl<'a> Map<'a> {
         path: &'static str,
     ) -> Map<'a> {
         // read tmx file
-        let map: tiled::Map = parse_file(&Path::new(&(ASSET_DIR.to_owned() + path))).unwrap();
+        let map: tiled::Map = parse_file(Path::new(&(ASSET_DIR.to_owned() + path))).unwrap();
 
         let layers: Vec<tiled::Layer> = map.layers;
         let tile_sets: Vec<tiled::Tileset> = map.tilesets;
@@ -191,17 +191,15 @@ impl<'a> Map<'a> {
                                 let idx_gid = self.gids.get(&gid).unwrap();
 
                                 let rect =
-                                    self.tile_atlases.get(&idx_gid).unwrap().get_tile_rect(gid);
+                                    self.tile_atlases.get(idx_gid).unwrap().get_tile_rect(gid);
 
                                 canvas
                                     .copy_ex(
-                                        &self.textures[&idx_gid],
+                                        &self.textures[idx_gid],
                                         Some(rect),
                                         Some(Rect::new(
-                                            (x - tile_left) as i32 * tile_width as i32
-                                                - tile_start_x,
-                                            (y - tile_top) as i32 * tile_height as i32
-                                                - tile_start_y,
+                                            (x - tile_left) * tile_width as i32 - tile_start_x,
+                                            (y - tile_top) * tile_height as i32 - tile_start_y,
                                             tile_width,
                                             tile_height,
                                         )),

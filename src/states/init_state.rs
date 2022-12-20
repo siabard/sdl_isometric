@@ -60,12 +60,12 @@ impl<'a> InitState<'a> {
         texture_manager.load_texture(
             "normal_button".to_string(),
             texture_creator,
-            &Path::new("resources/btn_normal.png"),
+            Path::new("resources/btn_normal.png"),
         );
         texture_manager.load_texture(
             "hover_button".to_string(),
             texture_creator,
-            &Path::new("resources/btn_hover.png"),
+            Path::new("resources/btn_hover.png"),
         );
 
         let text = GuiElement::new(
@@ -108,7 +108,7 @@ impl<'a> States for InitState<'a> {
         }
 
         for (_k, button) in self.buttons.iter_mut() {
-            button.process_event(&event);
+            button.process_event(event);
         }
         StateResult::Default
     }

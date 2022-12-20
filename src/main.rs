@@ -16,7 +16,7 @@ fn main() -> Result<(), String> {
     let font_context = sdl2::ttf::init().unwrap();
 
     // Timer
-    let mut timer_subsystem: TimerSubsystem = sdl_context.timer().unwrap();
+    let timer_subsystem: TimerSubsystem = sdl_context.timer().unwrap();
     // Audio
     let _audio = sdl_context.audio().expect("ERROR on audio_subsystem");
 

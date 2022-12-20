@@ -33,7 +33,7 @@ impl<'a> TextureManager<'a> {
         texture_creator: &'a TextureCreator<WindowContext>,
         path: &Path,
     ) {
-        let texture = texture_creator.load_texture(&path).unwrap();
+        let texture = texture_creator.load_texture(path).unwrap();
         self.textures.insert(texture_id, texture);
     }
 
@@ -91,7 +91,7 @@ impl Sprite {
 
         canvas
             .copy_ex(
-                &texture,
+                texture,
                 Some(self.src),
                 Some(transform_rect(&self.dest, WIDTH_RATIO, HEIGHT_RATIO)),
                 self.rotation,

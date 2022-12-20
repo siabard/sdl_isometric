@@ -81,7 +81,7 @@ impl AnimationComponent {
         );
 
         if !self.frames.is_empty() {
-            let src = self.frames[self.frame as usize];
+            let src = self.frames[self.frame];
             for texture_key in &self.textures {
                 let texture = texture_manager.textures.get(texture_key).unwrap();
                 canvas
