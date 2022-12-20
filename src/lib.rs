@@ -4,6 +4,7 @@ extern crate lazy_static;
 pub mod actions;
 pub mod ai;
 pub mod animation;
+pub mod ascii;
 pub mod components;
 pub mod constant;
 pub mod entities;

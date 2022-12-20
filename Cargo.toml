@@ -12,6 +12,7 @@ rand = "0.7"
 rayon="1.1"
 lazy_static="1.4.0"
 tiled="0.9.3"
+image="0.24"
 
 [dependencies.sdl2]
 version="0.35"
