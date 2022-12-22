@@ -1,6 +1,7 @@
 //! 아스키 텍스트로 이미지를 랜더링하기
 
 pub mod map;
+pub use map::*;
 
 const ASCII_TEXTURE: &'static str = " _.,-=+:;cba!?0123456789$W#@";
 

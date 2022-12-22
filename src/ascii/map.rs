@@ -20,7 +20,7 @@ pub struct Item {
 
 /// 지도의 각 셀은 벽이나 바닥
 /// 바닥에는 복수의 아이템이 놓일 수 있다.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum MapCell {
     Blank,
     Wall,
@@ -73,17 +73,17 @@ impl Map {
                 let tx: i32 = lerpl(x as f32, x_ as f32, j as f32 / d as f32) as i32;
                 let ty: i32 = lerpl(y as f32, y_ as f32, j as f32 / d as f32) as i32;
 
-                if tx < 0 || tx >= self.width {
+                if tx < 0 || tx >= self.width as i32 {
                     continue;
                 }
 
-                if ty < 0 || ty >= self.height {
+                if ty < 0 || ty >= self.height as i32 {
                     continue;
                 }
 
                 // 중심점에서부터 빛이 나아가는 경로에 벽이 있다면
                 // 해당 벽까지만 빛이 들어가야하고 그 이후로는 더이상 진행해서는 안된다.
-                let idx: usize = (tx + ty * map.width as i32) as usize;
+                let idx: usize = (tx + ty * self.width as i32) as usize;
                 self.known[idx] = true;
                 if self.cells[idx] == MapCell::Wall {
                     break;
