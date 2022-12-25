@@ -38,7 +38,7 @@ pub struct Map {
 impl Map {
     pub fn new(width: u32, height: u32) -> Self {
         let mut cells = vec![];
-        for i in 0..(width * height) {
+        for _ in 0..(width * height) {
             cells.push(MapCell::Blank);
         }
 
