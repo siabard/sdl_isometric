@@ -6,18 +6,19 @@
 //! SDL2 렌더러를 통한 직접적인 최종 렌더링이 이루어진다.
 
 use hangul_jaso::*;
+use jaso_sdl2::*;
+use sdl2::render::WindowCanvas;
+use std::collections::HashMap;
 
-pub enum Cell {
-    HalfCell(char),
-    FullCell(char),
-}
-
+/// 콘솔 한 셀에 해당하는 구조체
 pub struct ScreenCell {
-    pub cell: Cell,
+    pub cell: char,
     pub fg: (u8, u8, u8, u8),
     pub bg: (u8, u8, u8, u8),
 }
 
+/// 콘솔을 애뮬레이션하는 객체
+/// 모든 글자는 이 객체에 올린 후 한번에 렌더링한다.
 pub struct Screen {
     pub width: u32,
     pub height: u32,
@@ -31,7 +32,7 @@ impl Screen {
         for _ in 0..height {
             for _ in 0..width {
                 cells.push(ScreenCell {
-                    cell: Cell::HalfCell('.'),
+                    cell: ' ',
                     fg: (255, 255, 255, 255),
                     bg: (0, 0, 0, 255),
                 });
@@ -45,7 +46,8 @@ impl Screen {
         }
     }
 
-    pub fn putchar(
+    /// 단일한 문자를 스크린 객체에 올린다.
+    pub fn put_char(
         &mut self,
         x: u32,
         y: u32,
@@ -55,23 +57,48 @@ impl Screen {
     ) {
         let idx = (y * self.width + x) as usize;
 
-        let code = utf8_to_ucs2(&c).unwrap();
-        let lang = ucs2_language(code);
-
-        let screen_cell = match lang {
-            Languages::Ascii => Cell::HalfCell(c),
-            Languages::Hangul => Cell::FullCell(c),
-            Languages::Kana => Cell::FullCell(c),
-            Languages::Arrow => Cell::HalfCell(c),
-            Languages::HangulJamo => Cell::FullCell(c),
-            _ => Cell::HalfCell(' '),
-        };
-
         let cell = &self.cells[idx];
         self.cells[idx] = ScreenCell {
-            cell: screen_cell,
+            cell: c,
             fg: if let Some(c) = fb { c } else { cell.fg },
             bg: if let Some(c) = bg { c } else { cell.bg },
         };
     }
+
+    /// 문장을 스크린 객체에 올린다.
+    pub fn put_string(
+        &mut self,
+        x: u32,
+        y: u32,
+        s: &dyn ToString,
+        fg: Option<(u8, u8, u8, u8)>,
+        bg: Option<(u8, u8, u8, u8)>,
+    ) {
+        let default_idx = (y * self.width + x) as usize;
+        let default_cell = &self.cells[default_idx];
+        let default_fg = if let Some(c) = fg { c } else { default_cell.fg };
+        let default_bg = if let Some(c) = bg { c } else { default_cell.bg };
+
+        let mut x_ = x;
+
+        for c in s.to_string().chars() {
+            let ucs_2_code = utf8_to_ucs2(&c).unwrap();
+            let lang = ucs2_language(ucs_2_code);
+
+            let idx = (y * self.width + x_) as usize;
+
+            self.cells[idx] = ScreenCell {
+                cell: c,
+                fg: default_fg,
+                bg: default_bg,
+            };
+
+            // 16픽셀은 Screen에서는 2칸이다. Screen의 모든 칸은
+            // 8x8 기준이다.
+            x_ = x_ + if lang == Languages::Ascii { 1 } else { 2 };
+        }
+    }
+
+    /// 렌더링
+    pub fn render(&self, font: &HashMap<String, Fonts>, canvas: &mut WindowCanvas) {}
 }
