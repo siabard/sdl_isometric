@@ -8,6 +8,7 @@
 use hangul_jaso::*;
 use jaso_sdl2::*;
 use sdl2::gfx::primitives::DrawRenderer;
+
 use sdl2::render::WindowCanvas;
 use std::collections::HashMap;
 
@@ -121,7 +122,7 @@ impl Screen {
         let texture_creator = canvas.texture_creator();
 
         let mut texture = texture_creator
-            .create_texture_streaming(
+            .create_texture_target(
                 sdl2::pixels::PixelFormatEnum::BGRA8888,
                 self.width,
                 self.height,
@@ -161,9 +162,21 @@ impl Screen {
                                             for i in 0..8_i16 {
                                                 let v = (row << i) & 0x80;
                                                 if v > 0 {
-                                                    texture_canvas.pixel(i, j, cell.fg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.fg,
+                                                        )
+                                                        .unwrap();
                                                 } else {
-                                                    texture_canvas.pixel(i, j, cell.bg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.bg,
+                                                        )
+                                                        .unwrap();
                                                 }
                                             }
                                         }
@@ -196,17 +209,41 @@ impl Screen {
                                                 let vj = (jong << i) & 0x8000;
 
                                                 if vc > 0 {
-                                                    texture_canvas.pixel(i, j, cell.fg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.fg,
+                                                        )
+                                                        .unwrap();
                                                 }
                                                 if vm > 0 {
-                                                    texture_canvas.pixel(i, j, cell.fg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.fg,
+                                                        )
+                                                        .unwrap();
                                                 }
                                                 if vj > 0 {
-                                                    texture_canvas.pixel(i, j, cell.fg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.fg,
+                                                        )
+                                                        .unwrap();
                                                 }
 
                                                 if vc + vm + vj == 0 {
-                                                    texture_canvas.pixel(i, j, cell.bg).unwrap();
+                                                    texture_canvas
+                                                        .pixel(
+                                                            i + (x * 8) as i16,
+                                                            j + (y * 16) as i16,
+                                                            cell.bg,
+                                                        )
+                                                        .unwrap();
                                                 }
                                             }
                                         }
@@ -219,5 +256,11 @@ impl Screen {
                 }
             })
             .unwrap();
+
+        canvas.copy(
+            &texture,
+            sdl2::rect::Rect::new(0, 0, self.width, self.height),
+            sdl2::rect::Rect::new(0, 0, self.width, self.height),
+        );
     }
 }
