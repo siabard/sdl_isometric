@@ -69,7 +69,7 @@ impl Screen {
         fb: Option<(u8, u8, u8, u8)>,
         bg: Option<(u8, u8, u8, u8)>,
     ) {
-        let idx = (y * self.cell_width + x) as usize;
+        let idx = (y * (self.width / self.cell_width) + x) as usize;
 
         let cell = &self.cells[idx];
         self.cells[idx] = ScreenCell {
@@ -88,7 +88,7 @@ impl Screen {
         fg: Option<(u8, u8, u8, u8)>,
         bg: Option<(u8, u8, u8, u8)>,
     ) {
-        let default_idx = (y * self.cell_width + x) as usize;
+        let default_idx = (y * (self.width / self.cell_width) + x) as usize;
         let default_cell = &self.cells[default_idx];
         let default_fg = if let Some(c) = fg { c } else { default_cell.fg };
         let default_bg = if let Some(c) = bg { c } else { default_cell.bg };
@@ -99,7 +99,7 @@ impl Screen {
             let ucs_2_code = utf8_to_ucs2(&c).unwrap();
             let lang = ucs2_language(ucs_2_code);
 
-            let idx = (y * self.cell_width + x_) as usize;
+            let idx = (y * (self.width / self.cell_width) + x_) as usize;
 
             self.cells[idx] = ScreenCell {
                 cell: c,
@@ -110,6 +110,15 @@ impl Screen {
             // 16픽셀은 Screen에서는 2칸이다. Screen의 모든 칸은
             // 8x8 기준이다.
             x_ = x_ + if lang == Languages::Ascii { 1 } else { 2 };
+        }
+    }
+
+    /// 스크린 깨끗이 지우기
+    pub fn clear(&mut self) {
+        for c in self.cells.iter_mut() {
+            c.cell = '\0';
+            c.fg = (0, 0, 0, 0);
+            c.bg = (0, 0, 0, 0);
         }
     }
 

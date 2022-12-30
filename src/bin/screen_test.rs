@@ -68,12 +68,41 @@ fn main() {
     let mut fonts: HashMap<Languages, Fonts> = HashMap::new();
     fonts.insert(Languages::Ascii, Fonts::Ascii(eng_font));
     fonts.insert(Languages::Hangul, Fonts::Korean(han_font));
+
+    let mut x = 10;
+    let mut y = 10;
+
     'game_loop: loop {
         for event in event_pump.poll_iter() {
             match event {
                 sdl2::event::Event::Quit { .. } => {
                     break 'game_loop;
                 }
+                sdl2::event::Event::KeyDown {
+                    scancode: Some(sdl2::keyboard::Scancode::Up),
+                    ..
+                } => {
+                    y = 0.max(y - 1);
+                }
+                sdl2::event::Event::KeyDown {
+                    scancode: Some(sdl2::keyboard::Scancode::Down),
+                    ..
+                } => {
+                    y = 14.min(y + 1);
+                }
+                sdl2::event::Event::KeyDown {
+                    scancode: Some(sdl2::keyboard::Scancode::Left),
+                    ..
+                } => {
+                    x = 0.max(x - 1);
+                }
+                sdl2::event::Event::KeyDown {
+                    scancode: Some(sdl2::keyboard::Scancode::Right),
+                    ..
+                } => {
+                    x = 19.min(x + 1);
+                }
+
                 _ => {}
             }
         }
@@ -81,8 +110,14 @@ fn main() {
         canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 255));
 
         canvas.clear();
+        screen.clear();
 
-        screen.put_char(5, 5, 'A', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+        screen.put_char(5, 5, '5', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+        screen.put_char(5, 6, '6', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+        screen.put_char(10, 5, 'A', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+        screen.put_char(11, 5, 'B', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+        screen.put_char(12, 5, 'C', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
+
         screen.put_string(
             5,
             7,
@@ -91,6 +126,7 @@ fn main() {
             Some((0, 255, 0, 255)),
         );
 
+        screen.put_char(x, y, '@', Some((255, 255, 255, 255)), Some((0, 0, 0, 255)));
         screen.render(&fonts, &mut canvas);
         canvas.present();
 
