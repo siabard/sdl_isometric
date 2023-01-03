@@ -2,9 +2,11 @@
 
 pub mod map;
 pub mod screen;
+pub mod entity;
 
 pub use map::*;
 pub use screen::*;
+pub use entity::*;
 
 const ASCII_TEXTURE: &'static str = " _.,-=+:;cba!?0123456789$W#@";
 
