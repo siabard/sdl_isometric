@@ -31,3 +31,7 @@ path = "src/bin/ascii_test.rs"
 [[bin]]
 name="screen_test"
 path = "src/bin/screen_test.rs"
+
+[[bin]]
+name="game_state_test"
+path = "src/bin/game_state_test.rs"

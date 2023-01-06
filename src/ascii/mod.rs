@@ -1,12 +1,14 @@
 //! 아스키 텍스트로 이미지를 랜더링하기
 
+pub mod entity;
+pub mod game_state;
 pub mod map;
 pub mod screen;
-pub mod entity;
 
+pub use entity::*;
+pub use game_state::*;
 pub use map::*;
 pub use screen::*;
-pub use entity::*;
 
 const ASCII_TEXTURE: &'static str = " _.,-=+:;cba!?0123456789$W#@";
 
