@@ -37,4 +37,19 @@ impl GameState {
         }
         x
     }
+
+    pub fn entity_coord_and_tile(&self) -> Vec<(&super::Coord, &super::Tile)> {
+        self.entities
+            .iter()
+            .filter(|&e| {
+                self.component.coord.get(e).is_some() && self.component.tile.get(e).is_some()
+            })
+            .map(|e| {
+                (
+                    self.component.coord.get(e).unwrap(),
+                    self.component.tile.get(e).unwrap(),
+                )
+            })
+            .collect::<Vec<(&super::Coord, &super::Tile)>>()
+    }
 }
