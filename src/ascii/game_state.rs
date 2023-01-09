@@ -52,4 +52,12 @@ impl GameState {
             })
             .collect::<Vec<(&super::Coord, &super::Tile)>>()
     }
+
+    pub fn entity_coord_update(&mut self, entity: u32, coord: Option<super::Coord>) {
+        if let Some(c) = coord {
+            if let Some(entity_coord) = self.component.coord.get_mut(&entity) {
+                *entity_coord = c;
+            }
+        }
+    }
 }
