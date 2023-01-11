@@ -15,6 +15,8 @@ fn main() {
     state.add_entity(Some((1, 1)), Some(Tile::Wall));
     state.add_entity(Some((2, 3)), Some(Tile::Ascii('c')));
     state.add_entity(None, Some(Tile::Ascii('d')));
+    state.generate_rooms();
+
     let player = state.add_entity(Some((x, y)), Some(Tile::Player));
 
     let entities = state.entity_coord_and_tile();
@@ -88,6 +90,20 @@ fn main() {
         canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         screen.clear();
+
+        for grid in state.grids.iter() {
+            for y in 0..grid.h {
+                for x in 0..grid.w {
+                    screen.put_char(
+                        grid.x as u32 + x,
+                        grid.y as u32 + y,
+                        '.',
+                        Some((127, 127, 127, 255)),
+                        Some((0, 0, 0, 255)),
+                    );
+                }
+            }
+        }
 
         let entities = state.entity_coord_and_tile();
         for (&coord, &tile) in entities.iter() {

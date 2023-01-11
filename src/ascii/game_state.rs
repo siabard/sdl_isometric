@@ -1,12 +1,13 @@
 //! 게임의 데이터를 보관하는 데이터셋
 
-use super::{Component, Entity};
+use super::{Component, Entity, Grid};
 use rand::{thread_rng, Rng};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GameState {
     pub entities: Vec<Entity>,
     pub component: Component,
+    pub grids: Vec<Grid>,
 }
 
 impl GameState {
@@ -14,6 +15,7 @@ impl GameState {
         GameState {
             entities: vec![],
             component: Component::default(),
+            grids: vec![],
         }
     }
 
@@ -57,6 +59,24 @@ impl GameState {
         if let Some(c) = coord {
             if let Some(entity_coord) = self.component.coord.get_mut(&entity) {
                 *entity_coord = c;
+            }
+        }
+    }
+
+    pub fn generate_rooms(&mut self) {
+        const NUM_TRIES: u32 = 100;
+        let mut rng = thread_rng();
+
+        for _ in 0..NUM_TRIES {
+            let grid = Grid::new(
+                rng.gen_range(0, 320 / 8),
+                rng.gen_range(0, 240 / 16),
+                rng.gen_range(3, 8),
+                rng.gen_range(3, 8),
+            );
+
+            if self.grids.len() == 0 || self.grids.iter().find(|&g| g.aabb(&grid)).is_none() {
+                self.grids.push(grid);
             }
         }
     }

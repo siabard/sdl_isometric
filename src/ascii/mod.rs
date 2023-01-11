@@ -2,11 +2,13 @@
 
 pub mod entity;
 pub mod game_state;
+pub mod grid;
 pub mod map;
 pub mod screen;
 
 pub use entity::*;
 pub use game_state::*;
+pub use grid::*;
 pub use map::*;
 pub use screen::*;
 
