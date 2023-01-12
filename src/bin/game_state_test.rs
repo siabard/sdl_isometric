@@ -91,21 +91,8 @@ fn main() {
         canvas.clear();
         screen.clear();
 
-        for grid in state.grids.iter() {
-            for y in 0..grid.h {
-                for x in 0..grid.w {
-                    screen.put_char(
-                        grid.x as u32 + x,
-                        grid.y as u32 + y,
-                        '.',
-                        Some((127, 127, 127, 255)),
-                        Some((0, 0, 0, 255)),
-                    );
-                }
-            }
-        }
-
         let entities = state.entity_coord_and_tile();
+
         for (&coord, &tile) in entities.iter() {
             match tile {
                 Tile::Wall => {

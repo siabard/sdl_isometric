@@ -117,8 +117,8 @@ impl Screen {
     pub fn clear(&mut self) {
         for c in self.cells.iter_mut() {
             c.cell = '#';
-            c.fg = (0, 0, 0, 0);
-            c.bg = (0, 0, 0, 0);
+            c.fg = (127, 127, 127, 255);
+            c.bg = (150, 150, 255, 255);
         }
     }
 
