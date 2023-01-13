@@ -35,3 +35,7 @@ path = "src/bin/screen_test.rs"
 [[bin]]
 name="game_state_test"
 path = "src/bin/game_state_test.rs"
+
+[[bin]]
+name="shadow_cast_test"
+path = "src/bin/shadow_cast_test.rs"
