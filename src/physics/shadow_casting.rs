@@ -28,6 +28,8 @@
 //! 기본적으로 동서남북 4방향을 검증해야하고, 검증한 방향에 맞추어
 //! 해당 셀에 대한 검증을 해야함
 
+type Pos = (i32, i32);
+
 /// 동서남북
 #[derive(Clone, Copy, PartialEq)]
 pub enum Direction {
@@ -64,53 +66,21 @@ impl LightMap {
         }
     }
 
-    pub fn calculate_pov(&mut self, depth: i32, origin: (i32, i32)) {
+    pub fn calculate_pov(&mut self, depth: i32, origin: Pos) {
         // 4방향 모두에 대해 검사
     }
 
-    pub fn scan(&mut self, direction: Direction, depth: i32, origin: (i32, i32), row: &Row) {
+    pub fn scan(&mut self, direction: Direction, origin: Pos, row: &Row) {
         // 스캔 위치를 먼저 구하자.
         let start_slope = row.start_slope;
         let end_slope = row.end_slope;
 
         // NEWS 에 따른 시작, 종료 위치
-        let (start_pos, end_pos) = match direction {
-            Direction::North => {
-                let start_pos_x = origin.0 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
-                let start_pos_y = origin.1 - depth;
-                let end_pos_x = origin.0 - ((depth as f32 / end_slope + 0.5).floor() as i32);
-                let end_pos_y = origin.1 - depth;
+        let tiles: Vec<Pos> = row.tiles(origin, direction);
 
-                ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
-            }
+        let prev_tile: Option<Pos> = None;
 
-            Direction::South => {
-                let start_pos_x = origin.0 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
-                let start_pos_y = origin.1 + depth;
-                let end_pos_x = origin.0 + ((depth as f32 / end_slope + 0.5).floor() as i32);
-                let end_pos_y = origin.1 + depth;
-                ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
-            }
-            Direction::East => {
-                let start_pos_x = origin.0 - depth;
-                let start_pos_y = origin.1 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
-                let end_pos_x = origin.0 - depth;
-                let end_pos_y = origin.1 - ((depth as f32 / end_slope + 0.5).floor() as i32);
-                ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
-            }
-            Direction::West => {
-                let start_pos_x = origin.0 + depth;
-                let start_pos_y = origin.1 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
-                let end_pos_x = origin.0 + depth;
-                let end_pos_y = origin.1 + ((depth as f32 / end_slope + 0.5).floor() as i32);
-                ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
-            }
-        };
-
-        println!(
-            "next line {}:{} ~ {}:{}",
-            start_pos.0, start_pos.1, end_pos.0, end_pos.1
-        );
+        dbg!(tiles);
     }
 }
 
@@ -137,6 +107,69 @@ impl Row {
             depth: self.depth + 1,
             start_slope: self.start_slope,
             end_slope: self.end_slope,
+        }
+    }
+
+    pub fn tiles(&self, origin: Pos, direction: Direction) -> Vec<Pos> {
+        let (start_pos, end_pos) = get_pos(
+            origin,
+            self.depth,
+            self.start_slope,
+            self.end_slope,
+            direction,
+        );
+
+        if start_pos.0 == end_pos.0 {
+            (start_pos.1..=end_pos.1)
+                .into_iter()
+                .map(move |y| (start_pos.0, y))
+                .collect()
+        } else {
+            (start_pos.0..=end_pos.0)
+                .into_iter()
+                .map(move |x| (x, start_pos.1))
+                .collect()
+        }
+    }
+}
+
+fn get_pos(
+    origin: Pos,
+    depth: i32,
+    start_slope: f32,
+    end_slope: f32,
+    direction: Direction,
+) -> (Pos, Pos) {
+    match direction {
+        Direction::North => {
+            let start_pos_x = origin.0 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 - depth;
+            let end_pos_x = origin.0 - ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 - depth;
+
+            ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
+        }
+
+        Direction::South => {
+            let start_pos_x = origin.0 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 + depth;
+            let end_pos_x = origin.0 + ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 + depth;
+            ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
+        }
+        Direction::East => {
+            let start_pos_x = origin.0 - depth;
+            let start_pos_y = origin.1 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let end_pos_x = origin.0 - depth;
+            let end_pos_y = origin.1 - ((depth as f32 / end_slope + 0.5).floor() as i32);
+            ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
+        }
+        Direction::West => {
+            let start_pos_x = origin.0 + depth;
+            let start_pos_y = origin.1 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let end_pos_x = origin.0 + depth;
+            let end_pos_y = origin.1 + ((depth as f32 / end_slope + 0.5).floor() as i32);
+            ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
     }
 }
