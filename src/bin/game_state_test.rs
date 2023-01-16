@@ -32,7 +32,7 @@ fn main() {
     canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut screen = sdl_isometric::ascii::screen::Screen::new(320, 240, 8, 8);
+    let mut screen = sdl_isometric::ascii::screen::Screen::new(320, 240, 8, 16);
 
     let eng_font = jaso_sdl2::build_ascii_fonts(&Path::new("assets/bitmap_fonts/ascii-light.png"));
 
@@ -102,6 +102,10 @@ fn main() {
         }
 
         light_map.calculate_pov(3, (x, y));
+
+        // light map 정보를 토대로 visited 정보를 생성한다.
+
+        // visited 정보가 들어간 내역을 토대로 drawing 한다.
 
         for (&coord, &tile) in entities.iter() {
             let pos = (coord.0 as i32, coord.1 as i32);
