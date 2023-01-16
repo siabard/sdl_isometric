@@ -1,5 +1,7 @@
 //! 게임의 데이터를 보관하는 데이터셋
 
+use crate::physics::shadow_casting::LightMap;
+
 use super::{Component, Entity, Grid, Tile};
 use rand::{thread_rng, Rng};
 
@@ -7,13 +9,18 @@ use rand::{thread_rng, Rng};
 pub struct GameState {
     pub entities: Vec<Entity>,
     pub component: Component,
+    pub visibility: Vec<bool>,
 }
 
 impl GameState {
-    pub fn new() -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
+        let mut visibility = vec![];
+        visibility.resize(width as usize * height as usize, false);
+
         GameState {
             entities: vec![],
             component: Component::default(),
+            visibility,
         }
     }
 
@@ -186,6 +193,17 @@ impl GameState {
 
                     self.add_entity(Some((end_x, y)), Some(Tile::Floor));
                 }
+            }
+        }
+    }
+
+    /// 맵의 일부 지역을 밝힌다.
+    pub fn update_visiblity(&mut self, lightmap: &LightMap) {
+        for (i, v) in lightmap.visible.iter().enumerate() {
+            let vis = self.visibility.get_mut(i).unwrap();
+
+            if *v {
+                *vis = *v;
             }
         }
     }

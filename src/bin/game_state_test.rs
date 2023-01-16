@@ -7,7 +7,7 @@ use sdl_isometric::ascii::game_state::GameState;
 use sdl_isometric::physics::shadow_casting::LightMap;
 
 fn main() {
-    let mut state = GameState::new();
+    let mut state = GameState::new(320 / 8, 240 / 16);
     let mut x = 10;
     let mut y = 10;
 
@@ -93,7 +93,8 @@ fn main() {
         light_map.clear_wall();
         light_map.clear_visible();
 
-        let entities = state.entity_coord_and_tile();
+        let state_clone = state.clone();
+        let entities = state_clone.entity_coord_and_tile();
 
         // entities 정보를 토대로 LightMap에 wall을 넣는다.
         for (&coord, _) in entities.iter().filter(|(_, &t)| t == Tile::Wall) {
@@ -104,12 +105,20 @@ fn main() {
         light_map.calculate_pov(3, (x, y));
 
         // light map 정보를 토대로 visited 정보를 생성한다.
+        state.update_visiblity(&light_map);
 
         // visited 정보가 들어간 내역을 토대로 drawing 한다.
 
         for (&coord, &tile) in entities.iter() {
             let pos = (coord.0 as i32, coord.1 as i32);
 
+            if !state
+                .visibility
+                .get(coord.1 as usize * 40 + coord.0 as usize)
+                .unwrap()
+            {
+                continue;
+            }
             match tile {
                 Tile::Wall => {
                     screen.put_char(
