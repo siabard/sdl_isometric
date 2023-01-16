@@ -31,7 +31,7 @@
 type Pos = (i32, i32);
 
 /// 동서남북
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
     North,
     South,
@@ -44,8 +44,8 @@ pub enum Direction {
 pub struct LightMap {
     pub width: i32,
     pub height: i32,
-    pub visible: Vec<bool>,
-    pub walled: Vec<bool>,
+    pub visible: Vec<bool>, // 해당 셀이 보이는가
+    pub walled: Vec<bool>,  // 해당 셀이 벽인가
 }
 
 impl LightMap {
@@ -66,11 +66,63 @@ impl LightMap {
         }
     }
 
-    pub fn calculate_pov(&mut self, depth: i32, origin: Pos) {
-        // 4방향 모두에 대해 검사
+    pub fn reveal(&mut self, pos: Pos) {
+        if pos.0 >= 0 && pos.1 >= 0 && pos.0 < self.width && pos.1 < self.height {
+            let idx = (pos.1 * self.width + pos.0) as usize;
+
+            if let Some(v) = self.visible.get_mut(idx) {
+                *v = true;
+            }
+        }
     }
 
-    pub fn scan(&mut self, direction: Direction, origin: Pos, row: &Row) {
+    pub fn calculate_pov(&mut self, depth: i32, origin: Pos) {
+        // origin 은 일단 보여야함
+        self.reveal(origin);
+
+        let row_north: Row = Row::new(1, 1., -1.);
+        let row_south: Row = Row::new(1, -1., 1.);
+        let row_east: Row = Row::new(1, -1., 1.);
+        let row_west: Row = Row::new(1, 1., -1.);
+
+        self.scan(Direction::North, origin, &row_north);
+        self.scan(Direction::South, origin, &row_south);
+        self.scan(Direction::East, origin, &row_east);
+        self.scan(Direction::West, origin, &row_west);
+    }
+
+    /// is_floor
+    fn is_floor(&self, tile: &Option<Pos>) -> bool {
+        match tile {
+            Some(pos) => {
+                let idx = (pos.1 * self.width + pos.0) as usize;
+                if idx >= (self.width * self.height) as usize {
+                    false
+                } else {
+                    (*self.walled.get(idx).unwrap()) == false
+                }
+            }
+            _ => false,
+        }
+    }
+
+    /// is_wall
+    fn is_wall(&self, tile: &Option<Pos>) -> bool {
+        match tile {
+            Some(_) => !self.is_floor(tile),
+            _ => false,
+        }
+    }
+
+    pub fn scan(&mut self, direction: Direction, origin: Pos, old_row: &Row) {
+        // row를 우선 복제한다.
+        let mut row = Row::new(old_row.depth, old_row.start_slope, old_row.end_slope);
+
+        // 최대 반경 4
+        if row.depth > 4 {
+            return;
+        }
+
         // 스캔 위치를 먼저 구하자.
         let start_slope = row.start_slope;
         let end_slope = row.end_slope;
@@ -78,12 +130,46 @@ impl LightMap {
         // NEWS 에 따른 시작, 종료 위치
         let tiles: Vec<Pos> = row.tiles(origin, direction);
 
-        let prev_tile: Option<Pos> = None;
+        let mut prev_tile: Option<Pos> = None;
 
-        dbg!(tiles);
+        for tile in tiles.iter() {
+            // tile 위치가 벗어나면 해당 tile은 검사안함
+            if tile.0 < 0 || tile.1 < 0 || tile.0 >= self.width || tile.1 >= self.height {
+                continue;
+            }
+
+            let idx = (tile.1 * self.width + tile.0) as usize;
+            let is_walled = self.is_wall(&Some(*tile));
+            let is_visible = is_symmetric(&row, direction, origin, *tile);
+
+            if self.is_wall(&Some(*tile)) || is_visible {
+                self.reveal(*tile);
+            }
+
+            if self.is_wall(&prev_tile) && !is_walled {
+                row.start_slope = slope(origin, *tile);
+            }
+
+            if !self.is_wall(&prev_tile) && is_walled {
+                let mut next_row = row.next();
+                next_row.end_slope = slope(origin, *tile);
+                self.scan(direction, origin, &row);
+            }
+
+            prev_tile = Some(*tile);
+        }
+
+        if self.is_floor(&prev_tile) {
+            let next_row = row.next();
+            self.scan(direction, origin, &next_row);
+        }
     }
 }
 
+/// 기울기 구하기
+fn slope(pos1: Pos, pos2: Pos) -> f32 {
+    (pos2.1 - pos1.1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0 - 1.0)
+}
 /// 각 행, 혹은 열에 대해서 각 단계별로 어디까지 검색해야하는지 알려주는 구조체
 #[derive(Debug, Clone, Copy)]
 pub struct Row {
@@ -133,6 +219,39 @@ impl Row {
     }
 }
 
+/// `is_symmetric` checks if a given floor tile can be seen
+/// symmetrically from the origin. It returns true if the central
+/// point of the tile is in the sector swept out by the row’s start
+/// and end slopes. Otherwise, it returns false.
+fn is_symmetric(row: &Row, direction: Direction, origin: Pos, pos: Pos) -> bool {
+    let depth = row.depth;
+    let start_slope = row.start_slope;
+    let end_slope = row.end_slope;
+
+    match direction {
+        Direction::North => {
+            let lower_boundary = origin.0 - (row.depth as f32 / row.start_slope) as i32;
+            let upper_boundary = origin.0 - (row.depth as f32 / row.end_slope) as i32;
+            pos.0 >= lower_boundary && pos.0 <= upper_boundary
+        }
+        Direction::South => {
+            let lower_boundary = origin.0 + (row.depth as f32 / row.start_slope) as i32;
+            let upper_boundary = origin.0 + (row.depth as f32 / row.end_slope) as i32;
+            pos.0 >= lower_boundary && pos.0 <= upper_boundary
+        }
+        Direction::East => {
+            let lower_boundary = origin.1 + (row.depth as f32 * row.start_slope) as i32;
+            let upper_boundary = origin.1 + (row.depth as f32 * row.end_slope) as i32;
+            pos.1 >= lower_boundary && pos.1 <= upper_boundary
+        }
+        Direction::West => {
+            let lower_boundary = origin.1 - (row.depth as f32 * row.start_slope) as i32;
+            let upper_boundary = origin.1 - (row.depth as f32 * row.end_slope) as i32;
+            pos.1 >= lower_boundary && pos.1 <= upper_boundary
+        }
+    }
+}
+
 fn get_pos(
     origin: Pos,
     depth: i32,
@@ -159,16 +278,16 @@ fn get_pos(
         }
         Direction::East => {
             let start_pos_x = origin.0 - depth;
-            let start_pos_y = origin.1 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
             let end_pos_x = origin.0 - depth;
-            let end_pos_y = origin.1 - ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 + ((depth as f32 / end_slope + 0.5).floor() as i32);
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
         Direction::West => {
             let start_pos_x = origin.0 + depth;
-            let start_pos_y = origin.1 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
             let end_pos_x = origin.0 + depth;
-            let end_pos_y = origin.1 + ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 - ((depth as f32 / end_slope + 0.5).floor() as i32);
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
     }
