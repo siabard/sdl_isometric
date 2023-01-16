@@ -105,6 +105,7 @@ fn main() {
 
         for (&coord, &tile) in entities.iter() {
             let pos = (coord.0 as i32, coord.1 as i32);
+
             match tile {
                 Tile::Wall => {
                     screen.put_char(

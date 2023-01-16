@@ -107,10 +107,10 @@ impl LightMap {
         let row_east: Row = Row::new(1, -1., 1.);
         let row_west: Row = Row::new(1, 1., -1.);
 
-        // self.scan(Direction::North, origin, &row_north);
+        self.scan(Direction::North, origin, &row_north);
         self.scan(Direction::South, origin, &row_south);
-        // self.scan(Direction::East, origin, &row_east);
-        // self.scan(Direction::West, origin, &row_west);
+        self.scan(Direction::East, origin, &row_east);
+        self.scan(Direction::West, origin, &row_west);
     }
 
     /// is_floor
@@ -176,32 +176,24 @@ impl LightMap {
             }
 
             let idx = (tile.1 * self.width + tile.0) as usize;
-            let is_walled = self.is_wall(&Some(*tile));
             let is_visible = is_symmetric(&row, direction, origin, *tile);
 
             if self.is_wall(&Some(*tile)) || is_visible {
                 self.reveal(*tile);
             }
 
-            if self.is_wall(&prev_tile) && !is_walled {
+            if self.is_wall(&prev_tile) && self.is_floor(&Some(*tile)) {
                 let old_start_slope = row.start_slope;
+
                 row.start_slope = slope(direction, origin, *tile);
-                println!(
-                    "start from {} -> to {} : {:?}",
-                    old_start_slope, row.start_slope, *tile
-                );
             }
 
-            if !self.is_wall(&prev_tile) && is_walled {
+            if self.is_floor(&prev_tile) && self.is_wall(&Some(*tile)) {
                 let old_end_slope = row.end_slope;
                 let mut next_row = row.next();
                 next_row.end_slope = slope(direction, origin, *tile);
 
                 self.scan(direction, origin, &next_row);
-                println!(
-                    "end from {} -> to {} : {:?}",
-                    old_end_slope, next_row.end_slope, *tile
-                );
             }
 
             prev_tile = Some(*tile);
@@ -218,7 +210,7 @@ impl LightMap {
 fn slope(direction: Direction, pos1: Pos, pos2: Pos) -> f32 {
     match direction {
         Direction::East | Direction::West => {
-            (pos2.1 - pos1.1 - 1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0)
+            ((pos2.1 - pos1.1) as f32 * 2.0 - 1.0) / ((pos2.0 - pos1.0) as f32 * 2.0)
         }
         Direction::North | Direction::South => {
             (pos2.1 - pos1.1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0 - 1.0)
@@ -287,21 +279,25 @@ fn is_symmetric(row: &Row, direction: Direction, origin: Pos, pos: Pos) -> bool 
         Direction::North => {
             let lower_boundary = origin.0 - (row.depth as f32 / row.start_slope) as i32;
             let upper_boundary = origin.0 - (row.depth as f32 / row.end_slope) as i32;
+
             pos.0 >= lower_boundary && pos.0 <= upper_boundary
         }
         Direction::South => {
             let lower_boundary = origin.0 + (row.depth as f32 / row.start_slope) as i32;
             let upper_boundary = origin.0 + (row.depth as f32 / row.end_slope) as i32;
+
             pos.0 >= lower_boundary && pos.0 <= upper_boundary
         }
         Direction::East => {
             let lower_boundary = origin.1 + (row.depth as f32 * row.start_slope) as i32;
             let upper_boundary = origin.1 + (row.depth as f32 * row.end_slope) as i32;
+
             pos.1 >= lower_boundary && pos.1 <= upper_boundary
         }
         Direction::West => {
             let lower_boundary = origin.1 - (row.depth as f32 * row.start_slope) as i32;
             let upper_boundary = origin.1 - (row.depth as f32 * row.end_slope) as i32;
+
             pos.1 >= lower_boundary && pos.1 <= upper_boundary
         }
     }
@@ -316,44 +312,35 @@ fn get_pos(
 ) -> (Pos, Pos) {
     match direction {
         Direction::North => {
-            let start_pos_x = origin.0 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_x = origin.0 - ((depth as f32 / start_slope + 0.5).floor() as i32);
             let start_pos_y = origin.1 - depth;
-            let end_pos_x = origin.0 - ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_x = origin.0 - ((depth as f32 / end_slope - 0.5).ceil() as i32);
             let end_pos_y = origin.1 - depth;
 
-            println!(
-                "{} : {} {} , {} {} ",
-                depth, start_pos_x, start_pos_y, end_pos_x, end_pos_y
-            );
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
 
         Direction::South => {
-            let start_pos_x = origin.0 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
+            let start_pos_x = origin.0 + ((depth as f32 / start_slope + 0.5).floor() as i32);
             let start_pos_y = origin.1 + depth;
-            let end_pos_x = origin.0 + ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let end_pos_x = origin.0 + ((depth as f32 / end_slope - 0.5).ceil() as i32);
             let end_pos_y = origin.1 + depth;
-
-            println!(
-                "{} : {} {} , {} {} ",
-                depth, start_pos_x, start_pos_y, end_pos_x, end_pos_y
-            );
 
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
         Direction::East => {
             let start_pos_x = origin.0 + depth;
-            let start_pos_y = origin.1 + ((depth as f32 * start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 + ((depth as f32 * start_slope + 0.5).floor() as i32);
             let end_pos_x = origin.0 + depth;
-            let end_pos_y = origin.1 + ((depth as f32 * end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 + ((depth as f32 * end_slope - 0.5).ceil() as i32);
 
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
         Direction::West => {
             let start_pos_x = origin.0 - depth;
-            let start_pos_y = origin.1 - ((depth as f32 * start_slope - 0.5).ceil() as i32);
+            let start_pos_y = origin.1 - ((depth as f32 * start_slope + 0.5).floor() as i32);
             let end_pos_x = origin.0 - depth;
-            let end_pos_y = origin.1 - ((depth as f32 * end_slope + 0.5).floor() as i32);
+            let end_pos_y = origin.1 - ((depth as f32 * end_slope - 0.5).ceil() as i32);
 
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
