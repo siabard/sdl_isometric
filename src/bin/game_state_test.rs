@@ -4,8 +4,7 @@ use std::path::Path;
 use sdl_isometric::ascii::entity::Tile;
 use sdl_isometric::ascii::game_state::GameState;
 
-use image::io::Reader as ImageReader;
-use sdl2::gfx::primitives::DrawRenderer;
+use sdl_isometric::physics::shadow_casting::LightMap;
 
 fn main() {
     let mut state = GameState::new();
@@ -17,9 +16,10 @@ fn main() {
     state.add_entity(None, Some(Tile::Ascii('d')));
     state.generate_rooms();
 
-    let player = state.add_entity(Some((x, y)), Some(Tile::Player));
+    // 320x240 해당도의 8x16 셀기준
+    let mut light_map: LightMap = LightMap::new(40, 15);
 
-    let entities = state.entity_coord_and_tile();
+    let player = state.add_entity(Some((x, y)), Some(Tile::Player));
 
     let sdl_context = sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
@@ -90,18 +90,37 @@ fn main() {
         canvas.set_draw_color(sdl2::pixels::Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         screen.clear();
+        light_map.clear_wall();
+        light_map.clear_visible();
 
         let entities = state.entity_coord_and_tile();
 
+        // entities 정보를 토대로 LightMap에 wall을 넣는다.
+        for (&coord, _) in entities.iter().filter(|(_, &t)| t == Tile::Wall) {
+            let pos = (coord.0 as i32, coord.1 as i32);
+            light_map.set_wall(pos);
+        }
+
+        light_map.calculate_pov(3, (x, y));
+
         for (&coord, &tile) in entities.iter() {
+            let pos = (coord.0 as i32, coord.1 as i32);
             match tile {
                 Tile::Wall => {
                     screen.put_char(
                         coord.0 as u32,
                         coord.1 as u32,
                         '.',
-                        Some((90, 90, 90, 255)),
-                        Some((128, 128, 255, 255)),
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((90, 90, 90, 255))
+                        } else {
+                            Some((90, 90, 90, 127))
+                        },
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((128, 128, 255, 255))
+                        } else {
+                            Some((128, 128, 255, 127))
+                        },
                     );
                 }
                 Tile::Ascii(c) => {
@@ -109,8 +128,16 @@ fn main() {
                         coord.0 as u32,
                         coord.1 as u32,
                         c,
-                        Some((90, 90, 90, 255)),
-                        Some((128, 128, 255, 255)),
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((90, 90, 90, 255))
+                        } else {
+                            Some((90, 90, 90, 127))
+                        },
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((128, 128, 255, 255))
+                        } else {
+                            Some((128, 128, 255, 127))
+                        },
                     );
                 }
                 Tile::Player => {
@@ -127,8 +154,16 @@ fn main() {
                         coord.0 as u32,
                         coord.1 as u32,
                         '.',
-                        Some((127, 127, 127, 255)),
-                        Some((0, 0, 0, 255)),
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((127, 127, 127, 255))
+                        } else {
+                            Some((127, 127, 127, 127))
+                        },
+                        if light_map.is_visible(&Some(pos)) {
+                            Some((0, 0, 0, 255))
+                        } else {
+                            Some((0, 0, 0, 127))
+                        },
                     );
                 }
             }

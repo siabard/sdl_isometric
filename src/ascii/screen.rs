@@ -266,10 +266,12 @@ impl Screen {
             })
             .unwrap();
 
-        canvas.copy(
-            &texture,
-            sdl2::rect::Rect::new(0, 0, self.width, self.height),
-            sdl2::rect::Rect::new(0, 0, self.width, self.height),
-        );
+        canvas
+            .copy(
+                &texture,
+                sdl2::rect::Rect::new(0, 0, self.width, self.height),
+                sdl2::rect::Rect::new(0, 0, self.width, self.height),
+            )
+            .unwrap();
     }
 }

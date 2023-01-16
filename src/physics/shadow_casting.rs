@@ -66,6 +66,28 @@ impl LightMap {
         }
     }
 
+    // 벽 정보를 초기화한다.
+    pub fn clear_wall(&mut self) {
+        self.walled.fill(false);
+    }
+
+    // 보이는 정보를 모두 초기화한다.
+    pub fn clear_visible(&mut self) {
+        self.visible.fill(false);
+    }
+
+    // 해당 위치를 벽으로 선언한다.
+    pub fn set_wall(&mut self, pos: Pos) {
+        if pos.0 >= 0 && pos.1 >= 0 && pos.0 < self.width && pos.1 < self.height {
+            let idx = (pos.1 * self.width + pos.0) as usize;
+
+            if let Some(w) = self.walled.get_mut(idx) {
+                *w = true;
+            }
+        }
+    }
+
+    // 해당 위치를 보임으로 전환한다.
     pub fn reveal(&mut self, pos: Pos) {
         if pos.0 >= 0 && pos.1 >= 0 && pos.0 < self.width && pos.1 < self.height {
             let idx = (pos.1 * self.width + pos.0) as usize;
@@ -85,14 +107,14 @@ impl LightMap {
         let row_east: Row = Row::new(1, -1., 1.);
         let row_west: Row = Row::new(1, 1., -1.);
 
-        self.scan(Direction::North, origin, &row_north);
+        // self.scan(Direction::North, origin, &row_north);
         self.scan(Direction::South, origin, &row_south);
-        self.scan(Direction::East, origin, &row_east);
-        self.scan(Direction::West, origin, &row_west);
+        // self.scan(Direction::East, origin, &row_east);
+        // self.scan(Direction::West, origin, &row_west);
     }
 
     /// is_floor
-    fn is_floor(&self, tile: &Option<Pos>) -> bool {
+    pub fn is_floor(&self, tile: &Option<Pos>) -> bool {
         match tile {
             Some(pos) => {
                 let idx = (pos.1 * self.width + pos.0) as usize;
@@ -107,9 +129,24 @@ impl LightMap {
     }
 
     /// is_wall
-    fn is_wall(&self, tile: &Option<Pos>) -> bool {
+    pub fn is_wall(&self, tile: &Option<Pos>) -> bool {
         match tile {
             Some(_) => !self.is_floor(tile),
+            _ => false,
+        }
+    }
+
+    /// is_visible
+    pub fn is_visible(&self, tile: &Option<Pos>) -> bool {
+        match tile {
+            Some(pos) => {
+                let idx = (pos.1 * self.width + pos.0) as usize;
+                if idx >= (self.width * self.height) as usize {
+                    false
+                } else {
+                    (*self.visible.get(idx).unwrap())
+                }
+            }
             _ => false,
         }
     }
@@ -147,13 +184,24 @@ impl LightMap {
             }
 
             if self.is_wall(&prev_tile) && !is_walled {
-                row.start_slope = slope(origin, *tile);
+                let old_start_slope = row.start_slope;
+                row.start_slope = slope(direction, origin, *tile);
+                println!(
+                    "start from {} -> to {} : {:?}",
+                    old_start_slope, row.start_slope, *tile
+                );
             }
 
             if !self.is_wall(&prev_tile) && is_walled {
+                let old_end_slope = row.end_slope;
                 let mut next_row = row.next();
-                next_row.end_slope = slope(origin, *tile);
-                self.scan(direction, origin, &row);
+                next_row.end_slope = slope(direction, origin, *tile);
+
+                self.scan(direction, origin, &next_row);
+                println!(
+                    "end from {} -> to {} : {:?}",
+                    old_end_slope, next_row.end_slope, *tile
+                );
             }
 
             prev_tile = Some(*tile);
@@ -167,8 +215,15 @@ impl LightMap {
 }
 
 /// 기울기 구하기
-fn slope(pos1: Pos, pos2: Pos) -> f32 {
-    (pos2.1 - pos1.1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0 - 1.0)
+fn slope(direction: Direction, pos1: Pos, pos2: Pos) -> f32 {
+    match direction {
+        Direction::East | Direction::West => {
+            (pos2.1 - pos1.1 - 1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0)
+        }
+        Direction::North | Direction::South => {
+            (pos2.1 - pos1.1) as f32 * 2.0 / ((pos2.0 - pos1.0) as f32 * 2.0 - 1.0)
+        }
+    }
 }
 /// 각 행, 혹은 열에 대해서 각 단계별로 어디까지 검색해야하는지 알려주는 구조체
 #[derive(Debug, Clone, Copy)]
@@ -205,7 +260,7 @@ impl Row {
             direction,
         );
 
-        if start_pos.0 == end_pos.0 {
+        if direction == Direction::East || direction == Direction::West {
             (start_pos.1..=end_pos.1)
                 .into_iter()
                 .map(move |y| (start_pos.0, y))
@@ -266,6 +321,10 @@ fn get_pos(
             let end_pos_x = origin.0 - ((depth as f32 / end_slope + 0.5).floor() as i32);
             let end_pos_y = origin.1 - depth;
 
+            println!(
+                "{} : {} {} , {} {} ",
+                depth, start_pos_x, start_pos_y, end_pos_x, end_pos_y
+            );
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
 
@@ -274,20 +333,28 @@ fn get_pos(
             let start_pos_y = origin.1 + depth;
             let end_pos_x = origin.0 + ((depth as f32 / end_slope + 0.5).floor() as i32);
             let end_pos_y = origin.1 + depth;
+
+            println!(
+                "{} : {} {} , {} {} ",
+                depth, start_pos_x, start_pos_y, end_pos_x, end_pos_y
+            );
+
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
         Direction::East => {
-            let start_pos_x = origin.0 - depth;
-            let start_pos_y = origin.1 + ((depth as f32 / start_slope - 0.5).ceil() as i32);
-            let end_pos_x = origin.0 - depth;
-            let end_pos_y = origin.1 + ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let start_pos_x = origin.0 + depth;
+            let start_pos_y = origin.1 + ((depth as f32 * start_slope - 0.5).ceil() as i32);
+            let end_pos_x = origin.0 + depth;
+            let end_pos_y = origin.1 + ((depth as f32 * end_slope + 0.5).floor() as i32);
+
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
         Direction::West => {
-            let start_pos_x = origin.0 + depth;
-            let start_pos_y = origin.1 - ((depth as f32 / start_slope - 0.5).ceil() as i32);
-            let end_pos_x = origin.0 + depth;
-            let end_pos_y = origin.1 - ((depth as f32 / end_slope + 0.5).floor() as i32);
+            let start_pos_x = origin.0 - depth;
+            let start_pos_y = origin.1 - ((depth as f32 * start_slope - 0.5).ceil() as i32);
+            let end_pos_x = origin.0 - depth;
+            let end_pos_y = origin.1 - ((depth as f32 * end_slope + 0.5).floor() as i32);
+
             ((start_pos_x, start_pos_y), (end_pos_x, end_pos_y))
         }
     }
