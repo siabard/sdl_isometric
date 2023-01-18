@@ -116,9 +116,9 @@ impl Screen {
     /// 스크린 깨끗이 지우기
     pub fn clear(&mut self) {
         for c in self.cells.iter_mut() {
-            c.cell = '#';
-            c.fg = (127, 127, 127, 255);
-            c.bg = (150, 150, 255, 255);
+            c.cell = ' ';
+            c.fg = (0, 0, 0, 255);
+            c.bg = (0, 0, 0, 255);
         }
     }
 

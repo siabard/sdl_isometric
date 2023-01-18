@@ -9,12 +9,20 @@ pub type Entity = u32;
 /// 좌표의 기본형
 pub type Coord = (i32, i32);
 
+/// 적의 타입
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum NpcType {
+    Orc,
+    Troll,
+}
+
 /// 타일의 기본형
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Tile {
     Wall,
     Floor,
     Player,
+    Npc(NpcType),
     Ascii(char),
     Hangul(char),
     Arrow(char),

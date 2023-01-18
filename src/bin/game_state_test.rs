@@ -11,10 +11,15 @@ fn main() {
     let mut x = 10;
     let mut y = 10;
 
-    state.add_entity(Some((1, 1)), Some(Tile::Wall));
-    state.add_entity(Some((2, 3)), Some(Tile::Ascii('c')));
-    state.add_entity(None, Some(Tile::Ascii('d')));
     state.generate_rooms();
+    state.add_entity(
+        Some((10, 11)),
+        Some(Tile::Npc(sdl_isometric::ascii::NpcType::Orc)),
+    );
+    state.add_entity(
+        Some((20, 13)),
+        Some(Tile::Npc(sdl_isometric::ascii::NpcType::Troll)),
+    );
 
     // 320x240 해당도의 8x16 셀기준
     let mut light_map: LightMap = LightMap::new(40, 15);
@@ -80,7 +85,7 @@ fn main() {
                     scancode: Some(sdl2::keyboard::Scancode::Right),
                     ..
                 } => {
-                    x = 19.min(x + 1);
+                    x = 39.min(x + 1);
                     state.entity_coord_update(player, Some((x, y)));
                 }
                 _ => {}
@@ -124,7 +129,7 @@ fn main() {
                     screen.put_char(
                         coord.0 as u32,
                         coord.1 as u32,
-                        '.',
+                        '#',
                         if light_map.is_visible(&Some(pos)) {
                             Some((90, 90, 90, 255))
                         } else {
@@ -163,6 +168,26 @@ fn main() {
                         Some((128, 128, 255, 255)),
                     );
                 }
+                Tile::Npc(n) => match n {
+                    sdl_isometric::ascii::NpcType::Orc => {
+                        screen.put_char(
+                            coord.0 as u32,
+                            coord.1 as u32,
+                            'o',
+                            Some((255, 0, 0, 255)),
+                            Some((0, 0, 0, 255)),
+                        );
+                    }
+                    sdl_isometric::ascii::NpcType::Troll => {
+                        screen.put_char(
+                            coord.0 as u32,
+                            coord.1 as u32,
+                            't',
+                            Some((0, 255, 0, 255)),
+                            Some((0, 0, 0, 255)),
+                        );
+                    }
+                },
                 _ => {
                     screen.put_char(
                         coord.0 as u32,
