@@ -207,18 +207,8 @@ impl UnitCharacter {
         self.py += self.velocity.1 * dt as f32;
 
         // x, y에 대한 Bound Condition
-        if self.px < 0. {
-            self.px = 0.;
-        }
-        if self.px > WORLD_WIDTH as f32 {
-            self.px = WORLD_WIDTH as f32;
-        }
-        if self.py < 0. {
-            self.py = 0.;
-        }
-        if self.py > WORLD_HEIGHT as f32 {
-            self.py = WORLD_HEIGHT as f32;
-        }
+        self.px = self.px.clamp(0., WORLD_WIDTH as f32);
+        self.py = self.py.clamp(0., WORLD_HEIGHT as f32);
     }
 
     /// 해당 캐릭터의 x 속도를 0으로 리셋한다.
