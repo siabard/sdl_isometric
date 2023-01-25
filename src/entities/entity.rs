@@ -82,6 +82,14 @@ impl Entity {
         self.attack = Some(AttackComponent::new());
     }
 
+    pub fn get_current_x(&self) -> f64 {
+        self.movement.as_ref().unwrap().get_pos_x()
+    }
+
+    pub fn get_current_y(&self) -> f64 {
+        self.movement.as_ref().unwrap().get_pos_y()
+    }
+
     pub fn get_predict_y(&self, dt: f64) -> f64 {
         self.movement.as_ref().unwrap().get_predict_y(dt)
     }

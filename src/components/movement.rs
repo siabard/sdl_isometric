@@ -103,13 +103,13 @@ impl MovementComponent {
     pub fn get_predict_y(&self, dt: f64) -> f64 {
         // 현재 속도상의 다음 y 위치를 구한다.
         let predict_y = self.y + self.velocity.1 * dt;
-        predict_y.min(WORLD_HEIGHT as f64).max(0.0)
+        predict_y.clamp(0.0, WORLD_HEIGHT as f64)
     }
 
     pub fn get_predict_x(&self, dt: f64) -> f64 {
         // 현재 속도상의 다음 x 위치를 구한다.
         let predict_x = self.x + self.velocity.0 * dt;
-        predict_x.min(WORLD_WIDTH as f64).max(0.0)
+        predict_x.clamp(0.0, WORLD_WIDTH as f64)
     }
 
     pub fn update_predict(&mut self, dt: f64) {
@@ -123,8 +123,8 @@ impl MovementComponent {
         self.py += self.velocity.1 * dt;
 
         // x, y에 대한 Bound Condition
-        self.px = (self.px).min(WORLD_WIDTH as f64).max(0.0);
-        self.py = (self.py).min(WORLD_HEIGHT as f64).max(0.0);
+        self.px = (self.px).clamp(0.0, WORLD_WIDTH as f64);
+        self.py = (self.py).clamp(0.0, WORLD_HEIGHT as f64);
     }
 
     /// 해당 캐릭터의 x 속도를 0으로 리셋한다.

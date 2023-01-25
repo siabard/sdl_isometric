@@ -25,6 +25,10 @@ version="0.8"
 features = ["serde", "v4"]
 
 [[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
 name="ascii_test"
 path = "src/bin/ascii_test.rs"
 
