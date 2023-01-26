@@ -652,8 +652,16 @@ impl<'a> GameState<'a> {
             }
         }
     }
+
+    /// 충돌 판정이 있는 모든 요소의 예상 위치를 먼저 계산한 후
+    /// 각 이동형 entity 가 해당 요소와 어떤 경우에 충돌하는지를 판단한다.
+    /// 해당 entity가 예상 위치 전체에 대해서
+    /// 1. x 위치가 바뀌지 않은 상태에서 충돌하지않았다면, Y 변환은 유지
+    /// 2. y 위치가 바뀌지 않은 상태에서 충돌하지않았다면, X 변환은 유지
+    /// 3. x, y 위치가 바귀지 않은 상태인데도 충돌이 되었다면 이동은 불가
+    /// 로 판단한다.
     fn update_collision_slide(&mut self, dt: f64) {
-        // 예상 위치로 이동시킨다.
+        // 기존의 entity를 clone 하여 다음 tick 의 이동위치를 구한다.
         let future_entities: HashMap<Uuid, Entity> = self
             .entities
             .clone()
@@ -665,7 +673,7 @@ impl<'a> GameState<'a> {
             })
             .collect();
 
-        // Quadtree를 생성하고, entity 아이디를 포함한 값을 넣는다.
+        // Quadtree를 생성하고, 미래 entity의 hitbox 정보를 넣는다.
         let mut quadtree = QuadTree::new(
             Rectangle::new(0.0, 0.0, WORLD_WIDTH as f64, WORLD_HEIGHT as f64),
             4,
@@ -683,26 +691,24 @@ impl<'a> GameState<'a> {
             }
         }
 
-        // 모든 Moveable 오브젝트를 가져온다.
-        // 해당 오브젝트의 예상 이동위치를 계산한다.
-        let movable_entities: HashMap<Uuid, Entity> = self
-            .entities
+        // future entity 에서 충돌이 발생하는지를 계산한다.
+        let moved_entities: HashMap<Uuid, Entity> = future_entities
             .clone()
             .into_iter()
             .filter(|(_, entity)| entity.movement.as_ref().is_some())
             .map(|(uuid, mut entity)| {
-                // Movable 오브젝트와 기존 오브젝트와의 충돌을 판정하고
-                // 예상 위치가 현재 위치와 겹친 시점에 대한 판단을 통해서
-                // 필요한 액션을 취한다.
+                let original_entity = self.entities.get(&uuid).unwrap();
+                let original_hitbox = original_entity.hitbox.unwrap().get_rect();
 
-                // 이동했을 위치값을 가져온다.
-                let future_entity = future_entities.get(&uuid).unwrap();
+                // future entity가 이동할 때 서로간의 충돌을 판정하고
+                // x, y 가 변동이 되지않았을 때도 동일했는지 검증한다.
 
-                if let Some(entity_hitbox) = future_entity.hitbox {
+                if let Some(entity_hitbox) = entity.hitbox {
                     let entity_hitbox = entity_hitbox.get_rect();
 
                     // quadtree에서 지정한 항목에 대해서만 충돌 검출한다.
-                    // 필요범위를 산출한다. (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
+                    // 필요 범위를 산출한다.
+                    // (entity 예상 위치에서 가로 세로로 일정만큼만 계산 (8픽셀))
                     let range: Rectangle = Rectangle::new(
                         entity_hitbox.x - entity_hitbox.w * 2.0,
                         entity_hitbox.y - entity_hitbox.h * 2.0,
@@ -718,30 +724,40 @@ impl<'a> GameState<'a> {
                         hash_uuid.insert(point.userdata, true);
                     }
 
-                    // 자신이 이미 움직이지않는 케이스는 판정하지않는다. (고정셀로 취급)
-                    let (vx, vy) = future_entity.movement.as_ref().unwrap().velocity;
+                    // 자신이 움직이지않는 케이스는 따로 충돌판정하지않는다.
+                    let (vx, vy) = original_entity.movement.as_ref().unwrap().velocity;
                     let speed = vx * vx + vy * vy;
 
                     if speed > 0.0 {
-                        //dbg!(uuid, entity.type_);
-                        //dbg!(range);
-                        //dbg!(candidates);
-                        // quadtree에 포함된 항목과만 충돌판정한다.
-                        for (quadtree_uuid, _) in hash_uuid {
-                            // 자기 자신과는 비교하지않는다.
-                            if uuid != quadtree_uuid {
-                                let others = future_entities.get(&quadtree_uuid).unwrap();
-                                //dbg!(others);
-                                // hitbox간 충돌여부 확인
+                        // quadtree에 포함된 항목과 충돌판정한다.
+                        // X 좌표는 바꾸지 않은 상태(X 이동이 없을 때) 충돌이 일어나는가?
+
+                        let is_collided = hash_uuid
+                            .iter()
+                            .filter(|(&quad_tree_uuid, _)| uuid != quad_tree_uuid)
+                            .any(|(uuid, _)| {
+                                let others = future_entities.get(uuid).unwrap();
                                 let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
 
-                                // collision이 발생했다면 X, Y 축으로만 이동했을 때와 비교해서
-                                // 해당 시점에 충돌이 없다면 이동해야한다.
-                                let original_entity = &entity;
+                                detect_collision(
+                                    &Rectangle {
+                                        x: entity_hitbox.x,
+                                        y: entity_hitbox.y,
+                                        w: entity_hitbox.w,
+                                        h: entity_hitbox.h,
+                                    },
+                                    &other_hitbox,
+                                )
+                            });
 
-                                let is_collided = detect_collision(&entity_hitbox, &other_hitbox);
-                                let original_hitbox = original_entity.hitbox.unwrap().get_rect();
-                                let is_collided_for_old_vertical = detect_collision(
+                        let is_collided_when_x_move = hash_uuid
+                            .iter()
+                            .filter(|(&quad_tree_uuid, _)| uuid != quad_tree_uuid)
+                            .any(|(uuid, _)| {
+                                let others = future_entities.get(uuid).unwrap();
+                                let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
+
+                                detect_collision(
                                     &Rectangle {
                                         x: entity_hitbox.x,
                                         y: original_hitbox.y,
@@ -749,8 +765,17 @@ impl<'a> GameState<'a> {
                                         h: entity_hitbox.h,
                                     },
                                     &other_hitbox,
-                                );
-                                let is_collided_for_old_horisonal = detect_collision(
+                                )
+                            });
+
+                        let is_collided_when_y_move = hash_uuid
+                            .iter()
+                            .filter(|(&quad_tree_uuid, _)| uuid != quad_tree_uuid)
+                            .any(|(uuid, _)| {
+                                let others = future_entities.get(uuid).unwrap();
+                                let other_hitbox = others.hitbox.as_ref().unwrap().get_rect();
+
+                                detect_collision(
                                     &Rectangle {
                                         x: original_hitbox.x,
                                         y: entity_hitbox.y,
@@ -758,33 +783,32 @@ impl<'a> GameState<'a> {
                                         h: entity_hitbox.h,
                                     },
                                     &other_hitbox,
-                                );
-                                if is_collided {
-                                    let mut new_v = entity.movement.unwrap().velocity;
-                                    if !is_collided_for_old_horisonal {
-                                        // 지금은 충돌하나 이전 가로 좌표를 사용했을 때는 충돌하지않았다면
-                                        // 그럼 y 좌표로는 이동해도 된다는 뜻
-                                        new_v = (0., new_v.1);
-                                    } else if !is_collided_for_old_vertical {
-                                        // 지금은 충돌하나 이전 세로 좌표를 사용했을 때 충돌하지않았다면
-                                        // 그럼 x 좌표로는 이동해도 된다는 뜻
-                                        new_v = (new_v.0, 0.);
-                                    } else {
-                                        new_v = (0., 0.);
-                                    }
+                                )
+                            });
 
-                                    entity.movement.as_mut().unwrap().set_velocity(new_v);
-                                }
+                        if is_collided {
+                            let mut new_v = entity.movement.unwrap().velocity;
+                            if !is_collided_when_x_move {
+                                // 지금은 충돌하나 이전 가로 좌표를 사용했을 때는 충돌하지않았다면
+                                // 그럼 y 좌표로는 이동해도 된다는 뜻
+                                new_v = (0., new_v.1);
+                            } else if !is_collided_when_y_move {
+                                // 지금은 충돌하나 이전 세로 좌표를 사용했을 때 충돌하지않았다면
+                                // 그럼 x 좌표로는 이동해도 된다는 뜻
+                                new_v = (new_v.0, 0.);
+                            } else {
+                                new_v = (0., 0.);
                             }
+
+                            entity.movement.as_mut().unwrap().set_velocity(new_v);
                         }
                     }
                 }
-
                 (uuid, entity)
             })
             .collect();
 
-        for (uuid, mut entity) in movable_entities {
+        for (uuid, mut entity) in moved_entities {
             entity.update_predict(dt);
             self.entities.insert(uuid, entity);
         }
